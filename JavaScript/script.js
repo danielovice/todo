@@ -40,7 +40,7 @@ listTitle.textContent = currentList;
 let todos = lists[currentList];
 
 /* -------------------------------
-   🔥 SCROLL VERHALTEN PRÜFEN
+   SCROLL VERHALTEN PRÜFEN
 --------------------------------- */
 function checkScroll() {
     const body = document.body;
@@ -56,7 +56,6 @@ function checkScroll() {
     }
 }
 
-// Beim Laden und bei Fenster-Änderung prüfen
 window.addEventListener("load", checkScroll);
 window.addEventListener("resize", checkScroll);
 
@@ -76,7 +75,7 @@ document.addEventListener("click", (e) => {
 });
 
 /* -------------------------------
-   LISTENNAME BEARBEITEN
+   LISTENNAME BEARBEITEN - 🔥 FIX
 --------------------------------- */
 function startEditingListTitle() {
     const currentName = currentList;
@@ -85,11 +84,21 @@ function startEditingListTitle() {
     inputField.type = "text";
     inputField.value = currentName;
     inputField.className = "edit-input";
+    inputField.style.width = "100%";
+    inputField.style.textAlign = "center";
 
     listTitle.textContent = "";
     listTitle.appendChild(inputField);
+    
+    // 🔥 WICHTIG: Focus mit Verzögerung für Mobile
     inputField.focus();
     inputField.select();
+    
+    // 🔥 iOS Safari: Nochmal focus nach kurzer Verzögerung
+    setTimeout(() => {
+        inputField.focus();
+        inputField.select();
+    }, 100);
 
     const saveEdit = () => {
         const newName = inputField.value.trim();
@@ -134,7 +143,7 @@ function updateCounter() {
 }
 
 /* -------------------------------
-   TODOS BEARBEITEN
+   TODOS BEARBEITEN - 🔥 FIX: Tastatur erscheint
 --------------------------------- */
 function startEditing(spanElement, index) {
     if (todos[index].erledigt) return;
@@ -145,9 +154,19 @@ function startEditing(spanElement, index) {
     inputField.value = currentText;
     inputField.className = "edit-input";
 
+    // 🔥 Span durch Input ersetzen
     spanElement.replaceWith(inputField);
-    inputField.focus();
-    inputField.select();
+    
+    // 🔥 WICHTIG: Focus mit Verzögerung für Mobile-Tastatur
+    setTimeout(() => {
+        inputField.focus();
+        inputField.select();
+    }, 10);
+    
+    // 🔥 iOS: Nochmal focus für zuverlässige Tastatur
+    setTimeout(() => {
+        inputField.focus();
+    }, 100);
 
     const saveEdit = () => {
         const newText = inputField.value.trim();
@@ -187,6 +206,7 @@ function render() {
         dragHandle.draggable = true;
         dragHandle.textContent = "⋮⋮";
         
+        // 🔥 Touch-Events nur für Drag, nicht für Edit
         dragHandle.addEventListener("touchstart", handleTouchStart, { passive: false });
         dragHandle.addEventListener("touchmove", handleTouchMove, { passive: false });
         dragHandle.addEventListener("touchend", handleTouchEnd, { passive: false });
@@ -203,6 +223,7 @@ function render() {
         const span = document.createElement("span");
         span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
+        // 🔥 Doppelklick für Bearbeiten
         span.addEventListener("dblclick", (e) => {
             e.stopPropagation();
             startEditing(span, index);
