@@ -371,6 +371,55 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
 }
 
+
+/* -------------------------------
+   TOUCH DRAG (HANDY SUPPORT)
+--------------------------------- */
+let touchItem = null;
+
+list.addEventListener("touchstart", e => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    touchItem = li;
+    li.classList.add("dragging");
+});
+
+list.addEventListener("touchmove", e => {
+    e.preventDefault();
+
+    const touch = e.touches[0];
+    const after = getDragAfterElement(list, touch.clientY);
+
+    if (!touchItem) return;
+
+    if (after == null) list.appendChild(touchItem);
+    else list.insertBefore(touchItem, after);
+}, { passive: false });
+
+list.addEventListener("touchend", () => {
+    if (!touchItem) return;
+
+    touchItem.classList.remove("dragging");
+
+    const items = Array.from(list.children);
+    const newTodos = [];
+
+    items.forEach(li => {
+        const idx = Number(li.dataset.index);
+        if (todos[idx]) newTodos.push(todos[idx]);
+    });
+
+    if (newTodos.length === todos.length) {
+        todos = newTodos;
+        saveLists();
+        render();
+    }
+
+    touchItem = null;
+});
+
+
+
 /* -------------------------------
    START
 --------------------------------- */
