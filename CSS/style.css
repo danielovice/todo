@@ -1,23 +1,10 @@
 /* -------------------------------------------
-   GRUNDSTILE
+   GRUNDSTILE & RESET
 -------------------------------------------- */
 * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
-input, textarea, [contenteditable] {
-    -webkit-user-select: text;
-    -khtml-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    user-select: text;
 }
 
 body {
@@ -31,7 +18,28 @@ body {
     overscroll-behavior-y: contain;
 }
 
-/* NAVBAR */
+/* Textauswahl nur bei Inputs erlauben */
+input, textarea, [contenteditable], .edit-input {
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    touch-action: auto;
+}
+
+/* Alle anderen Elemente keine Auswahl */
+button, li, span, .drag-handle, .navbar, .app, h1 {
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* -------------------------------------------
+   NAVBAR
+-------------------------------------------- */
 .navbar {
     display: flex;
     justify-content: space-between;
@@ -56,7 +64,9 @@ body {
     align-items: center;
 }
 
-/* BUTTONS */
+/* -------------------------------------------
+   BUTTONS (Allgemein)
+-------------------------------------------- */
 button {
     padding: 10px 14px;
     border-radius: 12px;
@@ -76,7 +86,9 @@ button:active {
     box-shadow: 0 2px 0 #0060df;
 }
 
-/* MENU */
+/* -------------------------------------------
+   MENÜ (Listen-Auswahl)
+-------------------------------------------- */
 .menu {
     position: relative;
 }
@@ -132,7 +144,9 @@ button:active {
     box-shadow: 0 2px 0 #cc372e;
 }
 
-/* APP Container */
+/* -------------------------------------------
+   APP Container
+-------------------------------------------- */
 .app {
     margin: 25px auto;
     width: 92%;
@@ -153,7 +167,9 @@ h1 {
     letter-spacing: -0.5px;
 }
 
-/* INPUT Area */
+/* -------------------------------------------
+   INPUT Area
+-------------------------------------------- */
 .input-area {
     display: flex;
     gap: 10px;
@@ -175,7 +191,9 @@ input[type="text"]::placeholder {
     color: #666;
 }
 
-/* FILTER Buttons */
+/* -------------------------------------------
+   FILTER BUTTONS (Ganz Blau)
+-------------------------------------------- */
 .filters {
     display: flex;
     gap: 8px;
@@ -186,8 +204,11 @@ input[type="text"]::placeholder {
 .filter-btn {
     padding: 8px 14px;
     font-size: 14px;
-    background: #1c1c1e;
-    box-shadow: 0 3px 0 #004499;
+    background: #0a84ff;
+    color: white;
+    box-shadow: 0 3px 0 #0060df;
+    border-radius: 10px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 .filter-btn.active {
@@ -195,7 +216,14 @@ input[type="text"]::placeholder {
     box-shadow: 0 3px 0 #1f9e3a;
 }
 
-/* COUNTER */
+.filter-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #0060df;
+}
+
+/* -------------------------------------------
+   COUNTER
+-------------------------------------------- */
 #counter {
     margin-bottom: 8px;
     color: #999;
@@ -203,7 +231,9 @@ input[type="text"]::placeholder {
     text-align: center;
 }
 
-/* TODO LIST */
+/* -------------------------------------------
+   TODO LIST
+-------------------------------------------- */
 ul {
     list-style: none;
     padding: 0;
@@ -220,18 +250,19 @@ li {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 8px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
     touch-action: pan-y;
 }
 
 /* 🔥 Drag-Feedback: Wird größer + Schatten */
 li.dragging {
-    opacity: 0.92;
-    transform: scale(1.03);
-    box-shadow: 0 10px 30px rgba(10, 132, 255, 0.35);
-    z-index: 5;
-    background: #25252a;
-    border: 1px solid #0a84ff;
+    opacity: 0.95;
+    transform: scale(1.04);
+    box-shadow: 0 15px 40px rgba(10, 132, 255, 0.4);
+    z-index: 10;
+    background: #2a2a2e;
+    border: 2px solid #0a84ff;
+    transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
 }
 
 .li-left {
@@ -295,6 +326,7 @@ li span {
     min-width: 0;
 }
 
+/* 🎯 Drag Handle - Besser greifbar */
 .drag-handle {
     cursor: grab;
     color: #666;
@@ -303,18 +335,22 @@ li span {
     align-items: center;
     justify-content: center;
     user-select: none;
-    height: 26px;
-    width: 26px;
-    border-radius: 6px;
-    transition: background 0.15s ease, color 0.15s ease;
+    -webkit-user-select: none;
+    height: 28px;
+    width: 32px;
+    border-radius: 8px;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    touch-action: none;
 }
 
 .drag-handle:active {
     cursor: grabbing;
-    background: #2a2a2e;
+    background: #3a3a3e;
     color: #0a84ff;
+    transform: scale(1.1);
 }
 
+/* ✏️ Edit Input - Verhindert Zoom */
 .edit-input {
     flex: 1;
     padding: 8px 12px;
@@ -324,18 +360,24 @@ li span {
     border: 2px solid #0a84ff;
     background: #2a2a2e;
     color: white;
-    font-size: 17px;
+    font-size: 16px;
     outline: none;
+    -webkit-user-select: text;
+    user-select: text;
 }
 
-/* ERLEDIGT Style */
+/* -------------------------------------------
+   ERLEDIGT Style
+-------------------------------------------- */
 .erledigt {
     text-decoration: line-through;
     color: #777;
     opacity: 0.85;
 }
 
-/* DELETE Button */
+/* -------------------------------------------
+   DELETE Button
+-------------------------------------------- */
 li button.delete {
     background: #ff453a;
     box-shadow: 0 3px 0 #cc372e;
@@ -348,7 +390,9 @@ li button.delete:active {
     box-shadow: 0 1px 0 #cc372e;
 }
 
-/* FOOTER */
+/* -------------------------------------------
+   FOOTER
+-------------------------------------------- */
 footer {
     margin-top: auto;
     text-align: center;
@@ -359,7 +403,9 @@ footer {
     border-top: 1px solid #222;
 }
 
-/* 📱 MOBILE Optimizations */
+/* -------------------------------------------
+   📱 MOBILE Optimizations
+-------------------------------------------- */
 @media (max-width: 600px) {
     .app {
         margin: 15px 12px;
@@ -401,8 +447,8 @@ footer {
 
     .drag-handle {
         font-size: 24px;
-        width: 28px;
-        height: 28px;
+        width: 34px;
+        height: 30px;
     }
 
     .navbar {
@@ -430,5 +476,10 @@ footer {
         font-size: 16px;
         padding: 13px 15px;
         border-radius: 11px;
+    }
+
+    .filter-btn {
+        padding: 9px 15px;
+        font-size: 15px;
     }
 }
