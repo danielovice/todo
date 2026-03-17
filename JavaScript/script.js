@@ -48,7 +48,6 @@ menuBtn.addEventListener("click", (e) => {
         menuDropdown.style.display === "flex" ? "none" : "flex";
 });
 
-// Menü schließen wenn woanders geklickt
 document.addEventListener("click", (e) => {
     if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
         menuDropdown.style.display = "none";
@@ -167,9 +166,10 @@ function render() {
         dragHandle.draggable = true;
         dragHandle.textContent = "⋮⋮";
         
-        // 🔥 Wichtig: Events stoppen damit Drag nicht mit Click kollidiert
-        dragHandle.addEventListener("mousedown", e => e.stopPropagation());
-        dragHandle.addEventListener("touchstart", e => e.stopPropagation(), { passive: false });
+        // 🔥 iOS: Alle Touch-Events stoppen
+        dragHandle.addEventListener("touchstart", handleTouchStart, { passive: false });
+        dragHandle.addEventListener("touchmove", handleTouchMove, { passive: false });
+        dragHandle.addEventListener("touchend", handleTouchEnd, { passive: false });
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
@@ -271,7 +271,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP (Mouse)
+   DRAG & DROP (Mouse - Desktop)
 --------------------------------- */
 let draggedItemIndex = null;
 
@@ -329,40 +329,43 @@ function getDragAfterElement(container, y) {
 }
 
 /* -------------------------------
-   TOUCH DRAG (Mobile)
+   TOUCH DRAG (iOS/Mobile) - 🔥 FIXED
 --------------------------------- */
 let touchItem = null;
 let touchStartY = 0;
 let touchStartX = 0;
 let hasMoved = false;
+let currentDragIndex = null;
 
-list.addEventListener("touchstart", e => {
-    const handle = e.target.closest(".drag-handle");
-    if (!handle) return;
-    
-    const li = handle.closest("li");
+function handleTouchStart(e) {
+    const li = e.target.closest("li");
     if (!li) return;
     
     touchItem = li;
     touchStartY = e.touches[0].clientY;
     touchStartX = e.touches[0].clientX;
+    currentDragIndex = Number(li.dataset.index);
     hasMoved = false;
     
+    // 🔥 iOS: preventDefault beim Start
+    e.preventDefault();
     e.stopPropagation();
-}, { passive: false });
+}
 
-list.addEventListener("touchmove", e => {
+function handleTouchMove(e) {
     if (!touchItem) return;
     
     const touch = e.touches[0];
     const moveY = Math.abs(touch.clientY - touchStartY);
     const moveX = Math.abs(touch.clientX - touchStartX);
     
+    // 🔥 iOS: Erst nach vertikaler Bewegung draggen starten
     if (!hasMoved) {
-        if (moveY > 8 && moveY > moveX) {
+        if (moveY > 10 && moveY > moveX) {
             hasMoved = true;
             touchItem.classList.add("dragging");
-        } else if (moveX > 15) {
+        } else if (moveX > 20) {
+            // Horizontale Bewegung = kein Drag
             touchItem = null;
             hasMoved = false;
             return;
@@ -371,7 +374,9 @@ list.addEventListener("touchmove", e => {
     
     if (!hasMoved) return;
     
+    // 🔥 iOS: preventDefault ist KRITISCH
     e.preventDefault();
+    e.stopPropagation();
     
     const after = getDragAfterElement(list, touch.clientY);
     
@@ -380,9 +385,9 @@ list.addEventListener("touchmove", e => {
     } else {
         list.insertBefore(touchItem, after);
     }
-}, { passive: false });
+}
 
-list.addEventListener("touchend", e => {
+function handleTouchEnd(e) {
     if (!touchItem) return;
     
     touchItem.classList.remove("dragging");
@@ -407,7 +412,8 @@ list.addEventListener("touchend", e => {
     
     touchItem = null;
     hasMoved = false;
-});
+    currentDragIndex = null;
+}
 
 /* -------------------------------
    LISTEN MENÜ RENDER
