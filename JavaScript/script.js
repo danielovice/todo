@@ -376,24 +376,30 @@ if ("serviceWorker" in navigator) {
 
 
 /* -------------------------------
-   TOUCH DRAG (HANDY SUPPORT)
+   TOUCH DRAG (FIXED)
 --------------------------------- */
 let touchItem = null;
+let isDragging = false;
 
 list.addEventListener("touchstart", e => {
-    const li = e.target.closest("li");
+    const handle = e.target.closest(".drag-handle");
+    if (!handle) return; // 🔥 NUR wenn man am Handle ist!
+
+    const li = handle.closest("li");
     if (!li) return;
+
     touchItem = li;
+    isDragging = true;
     li.classList.add("dragging");
 });
 
 list.addEventListener("touchmove", e => {
+    if (!isDragging || !touchItem) return;
+
     e.preventDefault();
 
     const touch = e.touches[0];
     const after = getDragAfterElement(list, touch.clientY);
-
-    if (!touchItem) return;
 
     if (after == null) list.appendChild(touchItem);
     else list.insertBefore(touchItem, after);
@@ -419,6 +425,7 @@ list.addEventListener("touchend", () => {
     }
 
     touchItem = null;
+    isDragging = false;
 });
 
 
