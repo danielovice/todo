@@ -24,7 +24,11 @@ let filter = null;
 const savedLists = localStorage.getItem("todoLists");
 const savedCurrentList = localStorage.getItem("todoCurrentList");
 
-lists = savedLists ? JSON.parse(savedLists) : { "Meine Liste": [] };
+try {
+    lists = savedLists ? JSON.parse(savedLists) : { "Meine Liste": [] };
+} catch (e) {
+    lists = { "Meine Liste": [] };
+}
 
 if (savedCurrentList && lists[savedCurrentList]) {
     currentList = savedCurrentList;
@@ -58,13 +62,20 @@ window.addEventListener("resize", checkScroll);
 /* -------------------------------
    MENÜ (Hamburger)
 --------------------------------- */
-menuBtn.addEventListener("click", () => {
+menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
     menuDropdown.style.display =
         menuDropdown.style.display === "flex" ? "none" : "flex";
 });
 
+document.addEventListener("click", (e) => {
+    if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
+        menuDropdown.style.display = "none";
+    }
+});
+
 /* -------------------------------
-   LISTENNAME BEARBEITEN (ORIGINAL)
+   LISTENNAME BEARBEITEN
 --------------------------------- */
 function startEditingListTitle() {
     const currentName = currentList;
@@ -122,7 +133,7 @@ function updateCounter() {
 }
 
 /* -------------------------------
-   TODOS BEARBEITEN (ORIGINAL)
+   TODOS BEARBEITEN
 --------------------------------- */
 function startEditing(spanElement, index) {
     if (todos[index].erledigt) return;
@@ -134,12 +145,8 @@ function startEditing(spanElement, index) {
     inputField.className = "edit-input";
 
     spanElement.replaceWith(inputField);
-    
-    // 🔥 iOS: Focus mit Verzögerung für Tastatur
-    setTimeout(() => {
-        inputField.focus();
-        inputField.select();
-    }, 10);
+    inputField.focus();
+    inputField.select();
 
     const saveEdit = () => {
         const newText = inputField.value.trim();
@@ -154,7 +161,7 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------
-   TODOS RENDERN (XSS-sicher)
+   TODOS RENDERN
 --------------------------------- */
 function render() {
     list.innerHTML = "";
@@ -179,7 +186,7 @@ function render() {
         dragHandle.draggable = true;
         dragHandle.textContent = "⋮⋮";
         
-        // 🔥 Touch-Events NUR auf drag-handle, nicht auf ganzem li
+        // 🔥 Touch-Events NUR für Drag-Handle
         dragHandle.addEventListener("touchstart", handleTouchStart, { passive: false });
         dragHandle.addEventListener("touchmove", handleTouchMove, { passive: false });
         dragHandle.addEventListener("touchend", handleTouchEnd, { passive: false });
@@ -196,25 +203,9 @@ function render() {
         const span = document.createElement("span");
         span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
-        
-        // 🔥 Doppelklick für Bearbeiten (funktioniert auf iOS)
         span.addEventListener("dblclick", (e) => {
             e.stopPropagation();
             startEditing(span, index);
-        });
-        
-        // 🔥 iOS: Auch langer Tap zum Bearbeiten
-        let tapTimer;
-        span.addEventListener("touchstart", (e) => {
-            tapTimer = setTimeout(() => {
-                startEditing(span, index);
-            }, 500);
-        });
-        span.addEventListener("touchend", () => {
-            clearTimeout(tapTimer);
-        });
-        span.addEventListener("touchmove", () => {
-            clearTimeout(tapTimer);
         });
 
         const delBtn = document.createElement("button");
@@ -240,9 +231,17 @@ function render() {
 function addTodo() {
     const text = input.value.trim();
     if (!text) return;
+    
     todos.push({ text: text, erledigt: false });
     input.value = "";
     input.blur();
+    
+    setTimeout(() => {
+        if (document.activeElement === input) {
+            input.blur();
+        }
+        window.scrollTo(window.scrollX, window.scrollY);
+    }, 100);
    
     saveLists();
     render();
@@ -252,7 +251,7 @@ addBtn.addEventListener("click", addTodo);
 input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
 
 /* -------------------------------
-   EVENT DELEGATION
+   EVENT DELEGATION (Click)
 --------------------------------- */
 list.addEventListener("click", e => {
     const action = e.target.dataset.action;
@@ -293,7 +292,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP (Mouse)
+   DRAG & DROP (Mouse - Desktop)
 --------------------------------- */
 let draggedItemIndex = null;
 
@@ -328,7 +327,7 @@ list.addEventListener("drop", () => {
     const newTodos = [];
     items.forEach(li => {
         const idx = Number(li.dataset.index);
-        if (todos[idx]) newTodos.push(todos[idx]);
+        if (todos[idx] !== undefined) newTodos.push(todos[idx]);
     });
     if (newTodos.length === todos.length) {
         todos = newTodos;
@@ -342,8 +341,11 @@ function getDragAfterElement(container, y) {
     return elements.reduce((closest, child) => {
         const box = child.getBoundingClientRect();
         const offset = y - box.top - box.height / 2;
-        if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
-        else return closest;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
@@ -351,73 +353,83 @@ function getDragAfterElement(container, y) {
    TOUCH DRAG (NUR auf drag-handle)
 --------------------------------- */
 let touchItem = null;
-let isDragging = false;
-let startY = 0;
-let startX = 0;
+let touchStartY = 0;
+let touchStartX = 0;
+let hasMoved = false;
 
 function handleTouchStart(e) {
     const handle = e.target.closest(".drag-handle");
     if (!handle) return;
-
+    
     const li = handle.closest("li");
     if (!li) return;
-
-    touchItem = li;
-    startY = e.touches[0].clientY;
-    startX = e.touches[0].clientX;
-    isDragging = false;
     
-    e.stopPropagation();
+    touchItem = li;
+    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX;
+    hasMoved = false;
+    
+    // 🔥 WICHTIG: Nur preventDefault wenn wir wirklich draggen
+    // Nicht blockieren für normale Klicks
 }
 
 function handleTouchMove(e) {
     if (!touchItem) return;
-
+    
     const touch = e.touches[0];
-    const moveY = Math.abs(touch.clientY - startY);
-    const moveX = Math.abs(touch.clientX - startX);
-
-    if (moveY > 5 && moveY > moveX) {
-        isDragging = true;
-        touchItem.classList.add("dragging");
+    const moveY = Math.abs(touch.clientY - touchStartY);
+    const moveX = Math.abs(touch.clientX - touchStartX);
+    
+    if (!hasMoved) {
+        if (moveY > 10 && moveY > moveX) {
+            hasMoved = true;
+            touchItem.classList.add("dragging");
+        } else if (moveX > 20) {
+            touchItem = null;
+            hasMoved = false;
+            return;
+        }
     }
-
-    if (!isDragging) return;
-
+    
+    if (!hasMoved) return;
+    
+    // 🔥 Nur preventDefault wenn wir wirklich draggen
     e.preventDefault();
-    e.stopPropagation();
-
+    
     const after = getDragAfterElement(list, touch.clientY);
-
-    if (after == null) list.appendChild(touchItem);
-    else list.insertBefore(touchItem, after);
-}, { passive: false };
+    
+    if (after == null) {
+        list.appendChild(touchItem);
+    } else {
+        list.insertBefore(touchItem, after);
+    }
+}
 
 function handleTouchEnd(e) {
     if (!touchItem) return;
-
+    
     touchItem.classList.remove("dragging");
-
-    if (isDragging) {
+    
+    if (hasMoved) {
         const items = Array.from(list.children);
         const newTodos = [];
-
+        
         items.forEach(li => {
             const idx = Number(li.dataset.index);
-            if (todos[idx]) newTodos.push(todos[idx]);
+            if (todos[idx] !== undefined) {
+                newTodos.push(todos[idx]);
+            }
         });
-
+        
         if (newTodos.length === todos.length) {
             todos = newTodos;
             saveLists();
             render();
         }
     }
-
-    touchItem = null;
-    isDragging = false;
     
-    e.stopPropagation();
+    touchItem = null;
+    hasMoved = false;
 }
 
 /* -------------------------------
@@ -448,13 +460,15 @@ function renderTabs() {
         const del = document.createElement("button");
         del.textContent = "🗑";
 
-        del.onclick = () => {
-            if (!confirm("Liste löschen?")) return;
+        del.onclick = (e) => {
+            e.stopPropagation();
+            if (!confirm("Liste \"" + name + "\" löschen?")) return;
             delete lists[name];
             if (name === currentList) {
                 const remaining = Object.keys(lists);
-                if (remaining.length > 0) currentList = remaining[0];
-                else {
+                if (remaining.length > 0) {
+                    currentList = remaining[0];
+                } else {
                     currentList = "Meine Liste";
                     lists[currentList] = [];
                 }
@@ -476,19 +490,30 @@ function renderTabs() {
    NEUE LISTE HINZUFÜGEN
 --------------------------------- */
 addListBtn.addEventListener("click", () => {
-    const name = prompt("Name der Liste:");
-    if (!name) return;
-    lists[name] = [];
-    currentList = name;
-    todos = lists[name];
-    listTitle.textContent = name;
+    const name = prompt("Name der neuen Liste:");
+    if (!name || !name.trim()) return;
+    const trimmedName = name.trim();
+    
+    if (lists[trimmedName]) {
+        alert("Eine Liste mit diesem Namen gibt es bereits!");
+        return;
+    }
+    
+    lists[trimmedName] = [];
+    currentList = trimmedName;
+    todos = lists[trimmedName];
+    listTitle.textContent = trimmedName;
     saveLists();
     renderTabs();
     render();
 });
 
+/* -------------------------------
+   SERVICE WORKER
+--------------------------------- */
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
+    navigator.serviceWorker.register("service-worker.js")
+        .catch(err => console.log("SW Registration failed:", err));
 }
 
 /* -------------------------------
