@@ -28,15 +28,6 @@ input, textarea, [contenteditable], .edit-input {
     touch-action: auto;
 }
 
-/* Alle anderen Elemente keine Auswahl */
-button, li, span, .drag-handle, .navbar, .app, h1 {
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
 /* -------------------------------------------
    NAVBAR
 -------------------------------------------- */
@@ -77,8 +68,6 @@ button {
     font-weight: 500;
     box-shadow: 0 4px 0 #0060df;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
-    -webkit-user-select: none;
-    user-select: none;
 }
 
 button:active {
@@ -87,7 +76,7 @@ button:active {
 }
 
 /* -------------------------------------------
-   MENÜ (Listen-Auswahl)
+   MENÜ (Listen-Auswahl) - 🔵 JETZT BLAU
 -------------------------------------------- */
 .menu {
     position: relative;
@@ -121,12 +110,14 @@ button:active {
     padding: 4px 0;
 }
 
+/* 🔵 Listen-Name Button jetzt BLAU statt schwarz */
 .list-item button:first-child {
     flex: 1;
     text-align: left;
     padding: 12px 14px;
     font-size: 15px;
-    background: #1c1c1e;
+    background: #0a84ff;
+    color: white;
     border-radius: 10px;
     box-shadow: 0 2px 0 #0055cc;
 }
@@ -136,6 +127,7 @@ button:active {
     box-shadow: none;
 }
 
+/* Löschen-Button bleibt rot */
 .list-item button:last-child {
     padding: 12px 14px;
     font-size: 15px;
@@ -155,7 +147,6 @@ button:active {
     border-radius: 22px;
     padding: 18px;
     box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7);
-    touch-action: pan-y;
 }
 
 h1 {
@@ -251,10 +242,9 @@ li {
     flex-wrap: wrap;
     gap: 8px;
     transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
-    touch-action: pan-y;
 }
 
-/* 🔥 Drag-Feedback: Wird größer + Schatten */
+/* 🔥 Drag-Feedback */
 li.dragging {
     opacity: 0.95;
     transform: scale(1.04);
@@ -324,9 +314,10 @@ li span {
     margin: 0 6px;
     font-size: 17px;
     min-width: 0;
+    cursor: pointer;
 }
 
-/* 🎯 Drag Handle - Besser greifbar */
+/* 🎯 Drag Handle */
 .drag-handle {
     cursor: grab;
     color: #666;
@@ -334,8 +325,6 @@ li span {
     display: flex;
     align-items: center;
     justify-content: center;
-    user-select: none;
-    -webkit-user-select: none;
     height: 28px;
     width: 32px;
     border-radius: 8px;
@@ -350,7 +339,7 @@ li span {
     transform: scale(1.1);
 }
 
-/* ✏️ Edit Input - Verhindert Zoom */
+/* ✏️ Edit Input */
 .edit-input {
     flex: 1;
     padding: 8px 12px;
@@ -362,8 +351,6 @@ li span {
     color: white;
     font-size: 16px;
     outline: none;
-    -webkit-user-select: text;
-    user-select: text;
 }
 
 /* -------------------------------------------
@@ -404,7 +391,7 @@ footer {
 }
 
 /* -------------------------------------------
-   📱 MOBILE Optimizations
+   📱 MOBILE
 -------------------------------------------- */
 @media (max-width: 600px) {
     .app {
