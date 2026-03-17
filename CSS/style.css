@@ -264,3 +264,27 @@ padding:10px;
 }
 
 }
+
+
+/* LISTEN MENÜ ABSTAND VERBESSERN */
+.list-item{
+padding:8px 0;
+gap:10px;
+}
+
+.list-item button{
+padding:8px 10px;
+font-size:14px;
+}
+
+/* Besser klickbar auf Handy */
+@media (max-width:600px){
+.list-item{
+padding:12px 0;
+}
+
+.list-item button{
+font-size:16px;
+padding:10px;
+}
+}
