@@ -190,15 +190,26 @@ function render() {
 }
 
 /* -------------------------------
-   TODOS HINZUFÜGEN
+   TODOS HINZUFÜGEN (Mit Mobile Fix)
 --------------------------------- */
 function addTodo() {
     const text = input.value.trim();
     if (!text) return;
+    
     todos.push({ text: text, erledigt: false });
     input.value = "";
-  /* 🔥 Tastatur schließen */
+    
+    // 🔥 Tastatur zuverlässig schließen + Zoom verhindern
     input.blur();
+    
+    // iOS Safari: Verhindert Auto-Zoom beim Focus
+    setTimeout(() => {
+        if (document.activeElement === input) {
+            input.blur();
+        }
+        // Scrollt leicht, um Zoom zu resetten
+        window.scrollTo(window.scrollX, window.scrollY);
+    }, 100);
    
     saveLists();
     render();
@@ -249,7 +260,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP
+   DRAG & DROP (Mouse)
 --------------------------------- */
 let draggedItemIndex = null;
 
@@ -284,7 +295,7 @@ list.addEventListener("drop", () => {
     const newTodos = [];
     items.forEach(li => {
         const idx = Number(li.dataset.index);
-        if (todos[idx]) newTodos.push(todos[idx]);
+        if (todos[idx] !== undefined) newTodos.push(todos[idx]);
     });
     if (newTodos.length === todos.length) {
         todos = newTodos;
@@ -298,10 +309,103 @@ function getDragAfterElement(container, y) {
     return elements.reduce((closest, child) => {
         const box = child.getBoundingClientRect();
         const offset = y - box.top - box.height / 2;
-        if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
-        else return closest;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
+
+/* -------------------------------
+   TOUCH DRAG (Mobile - Fixed)
+--------------------------------- */
+let touchItem = null;
+let touchStartY = 0;
+let touchStartX = 0;
+let hasMoved = false;
+let lastTouchY = 0;
+
+list.addEventListener("touchstart", e => {
+    const handle = e.target.closest(".drag-handle");
+    if (!handle) return;
+    
+    const li = handle.closest("li");
+    if (!li) return;
+    
+    touchItem = li;
+    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX;
+    lastTouchY = touchStartY;
+    hasMoved = false;
+    
+    // 🔥 Verhindert horizontales Scrollen der Page während Drag
+    e.preventDefault();
+}, { passive: false });
+
+list.addEventListener("touchmove", e => {
+    if (!touchItem) return;
+    
+    const touch = e.touches[0];
+    const moveY = Math.abs(touch.clientY - touchStartY);
+    const moveX = Math.abs(touch.clientX - touchStartX);
+    
+    // 🔥 Nur vertikale Bewegung = Drag, horizontale = ignorieren
+    if (!hasMoved) {
+        if (moveY > 10 && moveY > moveX) {
+            hasMoved = true;
+            touchItem.classList.add("dragging");
+        } else if (moveX > 10) {
+            // Horizontale Bewegung → Drag abbrechen
+            touchItem = null;
+            hasMoved = false;
+            return;
+        }
+    }
+    
+    if (!hasMoved) return;
+    
+    // 🔥 Verhindert Page-Scroll während Drag
+    e.preventDefault();
+    
+    const after = getDragAfterElement(list, touch.clientY);
+    
+    if (after == null) {
+        list.appendChild(touchItem);
+    } else {
+        list.insertBefore(touchItem, after);
+    }
+    
+    lastTouchY = touch.clientY;
+}, { passive: false });
+
+list.addEventListener("touchend", e => {
+    if (!touchItem) return;
+    
+    touchItem.classList.remove("dragging");
+    
+    if (hasMoved) {
+        const items = Array.from(list.children);
+        const newTodos = [];
+        
+        items.forEach(li => {
+            const idx = Number(li.dataset.index);
+            if (todos[idx] !== undefined) {
+                newTodos.push(todos[idx]);
+            }
+        });
+        
+        if (newTodos.length === todos.length) {
+            todos = newTodos;
+            saveLists();
+            render();
+        }
+    }
+    
+    // Reset
+    touchItem = null;
+    hasMoved = false;
+});
 
 /* -------------------------------
    LISTEN MENÜ RENDER
@@ -332,12 +436,13 @@ function renderTabs() {
         del.textContent = "🗑";
 
         del.onclick = () => {
-            if (!confirm("Liste löschen?")) return;
+            if (!confirm("Liste \"" + name + "\" löschen?")) return;
             delete lists[name];
             if (name === currentList) {
                 const remaining = Object.keys(lists);
-                if (remaining.length > 0) currentList = remaining[0];
-                else {
+                if (remaining.length > 0) {
+                    currentList = remaining[0];
+                } else {
                     currentList = "Meine Liste";
                     lists[currentList] = [];
                 }
@@ -359,86 +464,31 @@ function renderTabs() {
    NEUE LISTE HINZUFÜGEN
 --------------------------------- */
 addListBtn.addEventListener("click", () => {
-    const name = prompt("Name der Liste:");
-    if (!name) return;
-    lists[name] = [];
-    currentList = name;
-    todos = lists[name];
-    listTitle.textContent = name;
+    const name = prompt("Name der neuen Liste:");
+    if (!name || !name.trim()) return;
+    const trimmedName = name.trim();
+    
+    if (lists[trimmedName]) {
+        alert("Eine Liste mit diesem Namen gibt es bereits!");
+        return;
+    }
+    
+    lists[trimmedName] = [];
+    currentList = trimmedName;
+    todos = lists[trimmedName];
+    listTitle.textContent = trimmedName;
     saveLists();
     renderTabs();
     render();
 });
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
-}
-
 /* -------------------------------
-   TOUCH DRAG (FINAL FIX)
+   SERVICE WORKER
 --------------------------------- */
-let touchItem = null;
-let isDragging = false;
-let startY = 0;
-
-list.addEventListener("touchstart", e => {
-    const handle = e.target.closest(".drag-handle");
-    if (!handle) return;
-
-    const li = handle.closest("li");
-    if (!li) return;
-
-    touchItem = li;
-    startY = e.touches[0].clientY;
-    isDragging = false;
-});
-
-list.addEventListener("touchmove", e => {
-    if (!touchItem) return;
-
-    const touch = e.touches[0];
-    const moveY = Math.abs(touch.clientY - startY);
-
-    /* 🔥 erst ab Bewegung wirklich draggen */
-    if (moveY > 5) {
-        isDragging = true;
-        touchItem.classList.add("dragging");
-    }
-
-    if (!isDragging) return;
-
-    e.preventDefault();
-
-    const after = getDragAfterElement(list, touch.clientY);
-
-    if (after == null) list.appendChild(touchItem);
-    else list.insertBefore(touchItem, after);
-}, { passive: false });
-
-list.addEventListener("touchend", () => {
-    if (!touchItem) return;
-
-    touchItem.classList.remove("dragging");
-
-    if (isDragging) {
-        const items = Array.from(list.children);
-        const newTodos = [];
-
-        items.forEach(li => {
-            const idx = Number(li.dataset.index);
-            if (todos[idx]) newTodos.push(todos[idx]);
-        });
-
-        if (newTodos.length === todos.length) {
-            todos = newTodos;
-            saveLists();
-            render();
-        }
-    }
-
-    touchItem = null;
-    isDragging = false;
-});
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+        .catch(err => console.log("SW Registration failed:", err));
+}
 
 /* -------------------------------
    START
