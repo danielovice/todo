@@ -199,7 +199,7 @@ input[type="text"]::placeholder {
 }
 
 /* -------------------------------------------
-   FILTER BUTTONS
+   FILTER BUTTONS (Ganz Blau)
 -------------------------------------------- */
 .filters {
     display: flex;
@@ -261,6 +261,7 @@ li {
     touch-action: pan-y;
 }
 
+/* 🔥 Drag-Feedback */
 li.dragging {
     opacity: 0.95;
     transform: scale(1.04);
@@ -277,7 +278,7 @@ li.dragging {
     gap: 12px;
 }
 
-/* 🍎 Apple-Style: Runde Checkboxen - 🔥 KEIN HOVER */
+/* 🍎 Apple-Style: Runde Checkboxen - KEIN HOVER */
 li input[type="checkbox"] {
     width: 26px;
     height: 26px;
@@ -294,7 +295,7 @@ li input[type="checkbox"] {
     flex-shrink: 0;
 }
 
-/* 🔥 Hover-Effekt ENTFERNT */
+/* 🔥 KEIN Hover-Effekt */
 li input[type="checkbox"]:checked {
     background: #0a84ff;
     border-color: #0a84ff;
@@ -319,6 +320,7 @@ li input[type="checkbox"]:checked::after {
     100% { transform: scale(1); }
 }
 
+/* 🔥 TODO TEXT - KEIN HOVER */
 li span {
     flex: 1;
     word-break: break-word;
@@ -333,9 +335,7 @@ li span {
     display: inline-block;
 }
 
-li span:hover {
-    background: rgba(255,255,255,0.05);
-}
+/* 🔥 Hover-Effekt ENTFERNT */
 
 /* 🎯 Drag Handle */
 .drag-handle {
