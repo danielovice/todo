@@ -30,15 +30,14 @@ body.no-scroll {
     width: 100%;
 }
 
-/* 🔥 WICHTIG: Inputs müssen user-select: text haben */
+/* Textauswahl nur bei Inputs erlauben */
 input, textarea, [contenteditable], .edit-input {
-    -webkit-user-select: text !important;
-    -khtml-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
-    user-select: text !important;
-    touch-action: auto !important;
-    -webkit-touch-callout: default !important;
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    touch-action: auto;
 }
 
 /* -------------------------------------------
@@ -165,7 +164,7 @@ button:active {
     flex-shrink: 0;
 }
 
-/* 🔥 Listentitel GRÖSSER + Bearbeitbar */
+/* 🔥 Listentitel GRÖSSER */
 h1 {
     text-align: center;
     cursor: pointer;
@@ -173,13 +172,6 @@ h1 {
     font-weight: 700;
     font-size: 32px;
     letter-spacing: -0.5px;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-}
-
-h1 .edit-input {
-    -webkit-user-select: text !important;
-    user-select: text !important;
 }
 
 /* -------------------------------------------
@@ -285,7 +277,7 @@ li.dragging {
     gap: 12px;
 }
 
-/* 🍎 Apple-Style: Runde Checkboxen - KEIN HOVER */
+/* 🍎 Apple-Style: Runde Checkboxen - 🔥 KEIN HOVER */
 li input[type="checkbox"] {
     width: 26px;
     height: 26px;
@@ -302,6 +294,7 @@ li input[type="checkbox"] {
     flex-shrink: 0;
 }
 
+/* 🔥 Hover-Effekt ENTFERNT */
 li input[type="checkbox"]:checked {
     background: #0a84ff;
     border-color: #0a84ff;
@@ -369,7 +362,7 @@ li span:hover {
     transform: scale(1.1);
 }
 
-/* ✏️ Edit Input - 🔥 WICHTIG FÜR TASTATUR */
+/* ✏️ Edit Input */
 .edit-input {
     flex: 1;
     padding: 6px 8px;
@@ -383,10 +376,8 @@ li span:hover {
     background: #2a2a2e;
     color: white;
     outline: none;
-    -webkit-user-select: text !important;
-    user-select: text !important;
-    touch-action: auto !important;
-    -webkit-touch-callout: default !important;
+    -webkit-user-select: text;
+    user-select: text;
     display: inline-block;
     vertical-align: middle;
     box-sizing: border-box;
