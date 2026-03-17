@@ -42,13 +42,21 @@ let todos = lists[currentList];
 /* -------------------------------
    MENÜ (Hamburger)
 --------------------------------- */
-menuBtn.addEventListener("click", () => {
+menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
     menuDropdown.style.display =
         menuDropdown.style.display === "flex" ? "none" : "flex";
 });
 
+// Menü schließen wenn woanders geklickt
+document.addEventListener("click", (e) => {
+    if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
+        menuDropdown.style.display = "none";
+    }
+});
+
 /* -------------------------------
-   LISTENNAME BEARBEITEN (Doppelklick)
+   LISTENNAME BEARBEITEN
 --------------------------------- */
 function startEditingListTitle() {
     const currentName = currentList;
@@ -106,7 +114,7 @@ function updateCounter() {
 }
 
 /* -------------------------------
-   TODOS BEARBEITEN (Doppelklick)
+   TODOS BEARBEITEN
 --------------------------------- */
 function startEditing(spanElement, index) {
     if (todos[index].erledigt) return;
@@ -134,7 +142,7 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------
-   TODOS RENDERN (XSS-sicher)
+   TODOS RENDERN
 --------------------------------- */
 function render() {
     list.innerHTML = "";
@@ -158,7 +166,10 @@ function render() {
         dragHandle.className = "drag-handle";
         dragHandle.draggable = true;
         dragHandle.textContent = "⋮⋮";
-        dragHandle.addEventListener("touchstart", e => e.stopPropagation());
+        
+        // 🔥 Wichtig: Events stoppen damit Drag nicht mit Click kollidiert
+        dragHandle.addEventListener("mousedown", e => e.stopPropagation());
+        dragHandle.addEventListener("touchstart", e => e.stopPropagation(), { passive: false });
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
@@ -172,7 +183,10 @@ function render() {
         const span = document.createElement("span");
         span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
-        span.addEventListener("dblclick", () => startEditing(span, index));
+        span.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+            startEditing(span, index);
+        });
 
         const delBtn = document.createElement("button");
         delBtn.textContent = "X";
@@ -216,7 +230,7 @@ addBtn.addEventListener("click", addTodo);
 input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
 
 /* -------------------------------
-   EVENT DELEGATION
+   EVENT DELEGATION (Click)
 --------------------------------- */
 list.addEventListener("click", e => {
     const action = e.target.dataset.action;
@@ -257,7 +271,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP (Mouse) - Smoother
+   DRAG & DROP (Mouse)
 --------------------------------- */
 let draggedItemIndex = null;
 
@@ -270,7 +284,6 @@ list.addEventListener("dragstart", e => {
     li.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", draggedItemIndex);
-    e.dataTransfer.setDragImage(li, 20, 20);
 });
 
 list.addEventListener("dragend", e => {
@@ -316,13 +329,12 @@ function getDragAfterElement(container, y) {
 }
 
 /* -------------------------------
-   TOUCH DRAG (Mobile - Smoother)
+   TOUCH DRAG (Mobile)
 --------------------------------- */
 let touchItem = null;
 let touchStartY = 0;
 let touchStartX = 0;
 let hasMoved = false;
-let originalPosition = null;
 
 list.addEventListener("touchstart", e => {
     const handle = e.target.closest(".drag-handle");
@@ -335,7 +347,6 @@ list.addEventListener("touchstart", e => {
     touchStartY = e.touches[0].clientY;
     touchStartX = e.touches[0].clientX;
     hasMoved = false;
-    originalPosition = li.getBoundingClientRect();
     
     e.stopPropagation();
 }, { passive: false });
@@ -396,7 +407,6 @@ list.addEventListener("touchend", e => {
     
     touchItem = null;
     hasMoved = false;
-    originalPosition = null;
 });
 
 /* -------------------------------
@@ -427,7 +437,8 @@ function renderTabs() {
         const del = document.createElement("button");
         del.textContent = "🗑";
 
-        del.onclick = () => {
+        del.onclick = (e) => {
+            e.stopPropagation();
             if (!confirm("Liste \"" + name + "\" löschen?")) return;
             delete lists[name];
             if (name === currentList) {
