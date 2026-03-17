@@ -36,7 +36,7 @@ listTitle.textContent = currentList;
 let todos = lists[currentList];
 
 /* -------------------------------
-   🔥 SCROLL VERHALTEN PRÜFEN
+   SCROLL VERHALTEN PRÜFEN
 --------------------------------- */
 function checkScroll() {
     const body = document.body;
@@ -64,7 +64,7 @@ menuBtn.addEventListener("click", () => {
 });
 
 /* -------------------------------
-   🔥 LISTENNAME BEARBEITEN (ORIGINAL CODE)
+   LISTENNAME BEARBEITEN (ORIGINAL)
 --------------------------------- */
 function startEditingListTitle() {
     const currentName = currentList;
@@ -87,7 +87,6 @@ function startEditingListTitle() {
                 listTitle.textContent = currentList;
                 return;
             }
-            // Liste umbenennen
             lists[newName] = lists[currentList];
             delete lists[currentList];
             currentList = newName;
@@ -123,7 +122,7 @@ function updateCounter() {
 }
 
 /* -------------------------------
-   🔥 TODOS BEARBEITEN (ORIGINAL CODE)
+   TODOS BEARBEITEN (ORIGINAL)
 --------------------------------- */
 function startEditing(spanElement, index) {
     if (todos[index].erledigt) return;
@@ -135,8 +134,12 @@ function startEditing(spanElement, index) {
     inputField.className = "edit-input";
 
     spanElement.replaceWith(inputField);
-    inputField.focus();
-    inputField.select();
+    
+    // 🔥 iOS: Focus mit Verzögerung für Tastatur
+    setTimeout(() => {
+        inputField.focus();
+        inputField.select();
+    }, 10);
 
     const saveEdit = () => {
         const newText = inputField.value.trim();
@@ -168,7 +171,6 @@ function render() {
         const li = document.createElement("li");
         li.dataset.index = index;
 
-        // Drag + Checkbox Container
         const leftDiv = document.createElement("div");
         leftDiv.className = "li-left";
 
@@ -176,6 +178,11 @@ function render() {
         dragHandle.className = "drag-handle";
         dragHandle.draggable = true;
         dragHandle.textContent = "⋮⋮";
+        
+        // 🔥 Touch-Events NUR auf drag-handle, nicht auf ganzem li
+        dragHandle.addEventListener("touchstart", handleTouchStart, { passive: false });
+        dragHandle.addEventListener("touchmove", handleTouchMove, { passive: false });
+        dragHandle.addEventListener("touchend", handleTouchEnd, { passive: false });
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
@@ -186,13 +193,30 @@ function render() {
         leftDiv.appendChild(dragHandle);
         leftDiv.appendChild(checkbox);
 
-        // Todo Text
         const span = document.createElement("span");
-        span.textContent = todo.text; // XSS-sicher
+        span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
-        span.addEventListener("dblclick", () => startEditing(span, index));
+        
+        // 🔥 Doppelklick für Bearbeiten (funktioniert auf iOS)
+        span.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+            startEditing(span, index);
+        });
+        
+        // 🔥 iOS: Auch langer Tap zum Bearbeiten
+        let tapTimer;
+        span.addEventListener("touchstart", (e) => {
+            tapTimer = setTimeout(() => {
+                startEditing(span, index);
+            }, 500);
+        });
+        span.addEventListener("touchend", () => {
+            clearTimeout(tapTimer);
+        });
+        span.addEventListener("touchmove", () => {
+            clearTimeout(tapTimer);
+        });
 
-        // Delete Button
         const delBtn = document.createElement("button");
         delBtn.textContent = "X";
         delBtn.className = "delete";
@@ -269,7 +293,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP
+   DRAG & DROP (Mouse)
 --------------------------------- */
 let draggedItemIndex = null;
 
@@ -321,6 +345,79 @@ function getDragAfterElement(container, y) {
         if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
         else return closest;
     }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+/* -------------------------------
+   TOUCH DRAG (NUR auf drag-handle)
+--------------------------------- */
+let touchItem = null;
+let isDragging = false;
+let startY = 0;
+let startX = 0;
+
+function handleTouchStart(e) {
+    const handle = e.target.closest(".drag-handle");
+    if (!handle) return;
+
+    const li = handle.closest("li");
+    if (!li) return;
+
+    touchItem = li;
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+    isDragging = false;
+    
+    e.stopPropagation();
+}
+
+function handleTouchMove(e) {
+    if (!touchItem) return;
+
+    const touch = e.touches[0];
+    const moveY = Math.abs(touch.clientY - startY);
+    const moveX = Math.abs(touch.clientX - startX);
+
+    if (moveY > 5 && moveY > moveX) {
+        isDragging = true;
+        touchItem.classList.add("dragging");
+    }
+
+    if (!isDragging) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const after = getDragAfterElement(list, touch.clientY);
+
+    if (after == null) list.appendChild(touchItem);
+    else list.insertBefore(touchItem, after);
+}, { passive: false };
+
+function handleTouchEnd(e) {
+    if (!touchItem) return;
+
+    touchItem.classList.remove("dragging");
+
+    if (isDragging) {
+        const items = Array.from(list.children);
+        const newTodos = [];
+
+        items.forEach(li => {
+            const idx = Number(li.dataset.index);
+            if (todos[idx]) newTodos.push(todos[idx]);
+        });
+
+        if (newTodos.length === todos.length) {
+            todos = newTodos;
+            saveLists();
+            render();
+        }
+    }
+
+    touchItem = null;
+    isDragging = false;
+    
+    e.stopPropagation();
 }
 
 /* -------------------------------
@@ -393,71 +490,6 @@ addListBtn.addEventListener("click", () => {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
 }
-
-/* -------------------------------
-   TOUCH DRAG (FINAL FIX)
---------------------------------- */
-let touchItem = null;
-let isDragging = false;
-let startY = 0;
-
-list.addEventListener("touchstart", e => {
-    const handle = e.target.closest(".drag-handle");
-    if (!handle) return;
-
-    const li = handle.closest("li");
-    if (!li) return;
-
-    touchItem = li;
-    startY = e.touches[0].clientY;
-    isDragging = false;
-});
-
-list.addEventListener("touchmove", e => {
-    if (!touchItem) return;
-
-    const touch = e.touches[0];
-    const moveY = Math.abs(touch.clientY - startY);
-
-    if (moveY > 5) {
-        isDragging = true;
-        touchItem.classList.add("dragging");
-    }
-
-    if (!isDragging) return;
-
-    e.preventDefault();
-
-    const after = getDragAfterElement(list, touch.clientY);
-
-    if (after == null) list.appendChild(touchItem);
-    else list.insertBefore(touchItem, after);
-}, { passive: false });
-
-list.addEventListener("touchend", () => {
-    if (!touchItem) return;
-
-    touchItem.classList.remove("dragging");
-
-    if (isDragging) {
-        const items = Array.from(list.children);
-        const newTodos = [];
-
-        items.forEach(li => {
-            const idx = Number(li.dataset.index);
-            if (todos[idx]) newTodos.push(todos[idx]);
-        });
-
-        if (newTodos.length === todos.length) {
-            todos = newTodos;
-            saveLists();
-            render();
-        }
-    }
-
-    touchItem = null;
-    isDragging = false;
-});
 
 /* -------------------------------
    START
