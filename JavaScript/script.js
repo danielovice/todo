@@ -1,300 +1,447 @@
-/* -------------------------------------------
-   GRUNDSTILE
--------------------------------------------- */
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #000;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+/* -------------------------------
+   VARIABLEN
+--------------------------------- */
+const input = document.getElementById("todoInput");
+const addBtn = document.getElementById("addBtn");
+const list = document.getElementById("todoList");
+const filterBtns = document.querySelectorAll(".filter-btn");
+const counter = document.getElementById("counter");
 
-    /* 🔥 verhindert seitliches scrollen */
-    overflow-x: hidden;
+const listTabs = document.getElementById("listTabs");
+const listTitle = document.getElementById("listTitle");
+
+const menuBtn = document.getElementById("menuBtn");
+const menuDropdown = document.getElementById("menuDropdown");
+const addListBtn = document.getElementById("addListBtn");
+
+let lists = {};
+let currentList = "Meine Liste";
+let filter = null;
+
+/* -------------------------------
+   LOCAL STORAGE LADEN
+--------------------------------- */
+const savedLists = localStorage.getItem("todoLists");
+const savedCurrentList = localStorage.getItem("todoCurrentList");
+
+lists = savedLists ? JSON.parse(savedLists) : { "Meine Liste": [] };
+
+if (savedCurrentList && lists[savedCurrentList]) {
+    currentList = savedCurrentList;
+} else {
+    currentList = Object.keys(lists)[0] || "Meine Liste";
 }
 
-/* NAVBAR */
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #111;
-    padding: 12px 20px;
-    border-bottom: 1px solid #222;
+listTitle.textContent = currentList;
+let todos = lists[currentList];
+
+/* -------------------------------
+   MENÜ (Hamburger)
+--------------------------------- */
+menuBtn.addEventListener("click", () => {
+    menuDropdown.style.display =
+        menuDropdown.style.display === "flex" ? "none" : "flex";
+});
+
+/* -------------------------------
+   LISTENNAME BEARBEITEN (Doppelklick)
+--------------------------------- */
+function startEditingListTitle() {
+    const currentName = currentList;
+
+    const inputField = document.createElement("input");
+    inputField.type = "text";
+    inputField.value = currentName;
+    inputField.className = "edit-input";
+
+    listTitle.textContent = "";
+    listTitle.appendChild(inputField);
+    inputField.focus();
+    inputField.select();
+
+    const saveEdit = () => {
+        const newName = inputField.value.trim();
+        if (newName && newName !== currentName) {
+            if (lists[newName]) {
+                alert("Eine Liste mit diesem Namen existiert bereits!");
+                listTitle.textContent = currentList;
+                return;
+            }
+            // Liste umbenennen
+            lists[newName] = lists[currentList];
+            delete lists[currentList];
+            currentList = newName;
+            saveLists();
+            renderTabs();
+        }
+        listTitle.textContent = currentList;
+    };
+
+    inputField.addEventListener("blur", saveEdit);
+    inputField.addEventListener("keypress", e => { if (e.key === "Enter") inputField.blur(); });
+    inputField.addEventListener("keydown", e => { if (e.key === "Escape") listTitle.textContent = currentList; });
 }
 
-.logo {
-    font-weight: bold;
-    font-size: 18px;
+listTitle.addEventListener("dblclick", startEditingListTitle);
+
+/* -------------------------------
+   SPEICHERN
+--------------------------------- */
+function saveLists() {
+    if (!Array.isArray(todos)) todos = [];
+    lists[currentList] = todos;
+    localStorage.setItem("todoLists", JSON.stringify(lists));
+    localStorage.setItem("todoCurrentList", currentList);
 }
 
-.nav-buttons {
-    display: flex;
-    gap: 10px;
-    align-items: center;
+/* -------------------------------
+   COUNTER UPDATE
+--------------------------------- */
+function updateCounter() {
+    const done = todos.filter(t => t.erledigt).length;
+    counter.textContent = `${done} von ${todos.length} erledigt`;
 }
 
-/* BUTTONS */
-button {
-    padding: 10px 14px;
-    border-radius: 10px;
-    border: none;
-    background: #0a84ff;
-    color: white;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #0060df;
+/* -------------------------------
+   TODOS BEARBEITEN (Doppelklick)
+--------------------------------- */
+function startEditing(spanElement, index) {
+    if (todos[index].erledigt) return;
+
+    const currentText = todos[index].text;
+    const inputField = document.createElement("input");
+    inputField.type = "text";
+    inputField.value = currentText;
+    inputField.className = "edit-input";
+
+    spanElement.replaceWith(inputField);
+    inputField.focus();
+    inputField.select();
+
+    const saveEdit = () => {
+        const newText = inputField.value.trim();
+        if (newText) todos[index].text = newText;
+        saveLists();
+        render();
+    };
+
+    inputField.addEventListener("blur", saveEdit);
+    inputField.addEventListener("keypress", e => { if (e.key === "Enter") inputField.blur(); });
+    inputField.addEventListener("keydown", e => { if (e.key === "Escape") render(); });
 }
 
-button:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #0060df;
+/* -------------------------------
+   TODOS RENDERN (XSS-sicher)
+--------------------------------- */
+function render() {
+    list.innerHTML = "";
+
+    if (!todos || !Array.isArray(todos)) {
+        todos = [];
+        saveLists();
+    }
+
+    todos.forEach((todo, index) => {
+        if (filter === "offen" && todo.erledigt) return;
+        if (filter === "erledigt" && !todo.erledigt) return;
+
+        const li = document.createElement("li");
+        li.dataset.index = index;
+
+        // Drag + Checkbox Container
+        const leftDiv = document.createElement("div");
+        leftDiv.className = "li-left";
+
+        const dragHandle = document.createElement("div");
+        dragHandle.className = "drag-handle";
+        dragHandle.draggable = true;
+        dragHandle.textContent = "⋮⋮";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.action = "toggle";
+        checkbox.dataset.index = index;
+        if (todo.erledigt) checkbox.checked = true;
+
+        leftDiv.appendChild(dragHandle);
+        leftDiv.appendChild(checkbox);
+
+        // Todo Text
+        const span = document.createElement("span");
+        span.textContent = todo.text; // XSS-sicher
+        if (todo.erledigt) span.classList.add("erledigt");
+        span.addEventListener("dblclick", () => startEditing(span, index));
+
+        // Delete Button
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "X";
+        delBtn.className = "delete";
+        delBtn.dataset.action = "delete";
+        delBtn.dataset.index = index;
+
+        li.appendChild(leftDiv);
+        li.appendChild(span);
+        li.appendChild(delBtn);
+
+        list.appendChild(li);
+    });
+
+    updateCounter();
 }
 
-/* MENU */
-.menu {
-    position: relative;
+/* -------------------------------
+   TODOS HINZUFÜGEN
+--------------------------------- */
+function addTodo() {
+    const text = input.value.trim();
+    if (!text) return;
+    todos.push({ text: text, erledigt: false });
+    input.value = "";
+  /* 🔥 Tastatur schließen */
+    input.blur();
+   
+    saveLists();
+    render();
 }
 
-#menuDropdown {
-    position: absolute;
-    right: 0;
-    top: 45px;
-    background: #111;
-    border: 1px solid #222;
-    border-radius: 10px;
-    padding: 8px;
-    display: none;
-    flex-direction: column;
-    gap: 6px; /* 🔥 weniger Abstand */
-    min-width: 180px;
-    z-index: 100;
+addBtn.addEventListener("click", addTodo);
+input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
+
+/* -------------------------------
+   EVENT DELEGATION
+--------------------------------- */
+list.addEventListener("click", e => {
+    const action = e.target.dataset.action;
+    const index = e.target.dataset.index;
+    if (!action || index === undefined) return;
+
+    const idx = Number(index);
+
+    if (action === "toggle" && todos[idx]) {
+        todos[idx].erledigt = !todos[idx].erledigt;
+        saveLists();
+        render();
+    }
+
+    if (action === "delete" && todos[idx]) {
+        todos.splice(idx, 1);
+        saveLists();
+        render();
+    }
+});
+
+/* -------------------------------
+   FILTER BUTTONS
+--------------------------------- */
+filterBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const value = btn.dataset.filter;
+        if (filter === value) {
+            filter = null;
+            btn.classList.remove("active");
+        } else {
+            filter = value;
+            filterBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+        }
+        render();
+    });
+});
+
+/* -------------------------------
+   DRAG & DROP
+--------------------------------- */
+let draggedItemIndex = null;
+
+list.addEventListener("dragstart", e => {
+    const handle = e.target.closest(".drag-handle");
+    if (!handle) return;
+    const li = handle.closest("li");
+    if (!li) return;
+    draggedItemIndex = Number(li.dataset.index);
+    li.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", draggedItemIndex);
+});
+
+list.addEventListener("dragend", e => {
+    const li = e.target.closest("li");
+    if (li) li.classList.remove("dragging");
+    draggedItemIndex = null;
+});
+
+list.addEventListener("dragover", e => {
+    e.preventDefault();
+    const after = getDragAfterElement(list, e.clientY);
+    const dragging = document.querySelector(".dragging");
+    if (!dragging) return;
+    if (after == null) list.appendChild(dragging);
+    else list.insertBefore(dragging, after);
+});
+
+list.addEventListener("drop", () => {
+    const items = Array.from(list.children);
+    const newTodos = [];
+    items.forEach(li => {
+        const idx = Number(li.dataset.index);
+        if (todos[idx]) newTodos.push(todos[idx]);
+    });
+    if (newTodos.length === todos.length) {
+        todos = newTodos;
+        saveLists();
+        render();
+    } else render();
+});
+
+function getDragAfterElement(container, y) {
+    const elements = [...container.querySelectorAll("li:not(.dragging)")];
+    return elements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+        else return closest;
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-.menu:hover #menuDropdown {
-    display: flex;
+/* -------------------------------
+   LISTEN MENÜ RENDER
+--------------------------------- */
+function renderTabs() {
+    listTabs.innerHTML = "";
+    for (const name in lists) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "list-item";
+
+        const btn = document.createElement("button");
+        btn.textContent = name;
+
+        btn.onmouseover = () => { menuDropdown.style.display = "flex"; };
+        btn.onmouseleave = () => { menuDropdown.style.display = "none"; };
+
+        btn.onclick = () => {
+            saveLists();
+            currentList = name;
+            todos = lists[name];
+            listTitle.textContent = name;
+            menuDropdown.style.display = "none";
+            renderTabs();
+            render();
+        };
+
+        const del = document.createElement("button");
+        del.textContent = "🗑";
+
+        del.onclick = () => {
+            if (!confirm("Liste löschen?")) return;
+            delete lists[name];
+            if (name === currentList) {
+                const remaining = Object.keys(lists);
+                if (remaining.length > 0) currentList = remaining[0];
+                else {
+                    currentList = "Meine Liste";
+                    lists[currentList] = [];
+                }
+                todos = lists[currentList];
+                listTitle.textContent = currentList;
+                saveLists();
+            }
+            renderTabs();
+            render();
+        };
+
+        wrapper.appendChild(btn);
+        wrapper.appendChild(del);
+        listTabs.appendChild(wrapper);
+    }
 }
 
-.list-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 0; /* 🔥 kleiner aber nicht 0 */
+/* -------------------------------
+   NEUE LISTE HINZUFÜGEN
+--------------------------------- */
+addListBtn.addEventListener("click", () => {
+    const name = prompt("Name der Liste:");
+    if (!name) return;
+    lists[name] = [];
+    currentList = name;
+    todos = lists[name];
+    listTitle.textContent = name;
+    saveLists();
+    renderTabs();
+    render();
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
 }
 
-.list-item button {
-    padding: 6px 8px;
-    font-size: 13px;
-}
+/* -------------------------------
+   TOUCH DRAG (FINAL FIX)
+--------------------------------- */
+let touchItem = null;
+let isDragging = false;
+let startY = 0;
 
-/* APP */
-.app {
-    margin: 30px auto;
-    width: 90%;
-    max-width: 500px;
-    background: #111;
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-}
+list.addEventListener("touchstart", e => {
+    const handle = e.target.closest(".drag-handle");
+    if (!handle) return;
 
-h1 {
-    text-align: center;
-    cursor: pointer;
-    margin: 0 0 20px 0;
-}
+    const li = handle.closest("li");
+    if (!li) return;
 
-/* INPUT */
-.input-area {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
+    touchItem = li;
+    startY = e.touches[0].clientY;
+    isDragging = false;
+});
 
-input {
-    flex: 1;
-    padding: 14px;
-    border-radius: 10px;
-    border: none;
-    background: #222;
-    color: white;
-    font-size: 18px;
-}
+list.addEventListener("touchmove", e => {
+    if (!touchItem) return;
 
-/* 🔥 verhindert Zoom auf iPhone */
-input, textarea {
-    font-size: 16px;
-}
+    const touch = e.touches[0];
+    const moveY = Math.abs(touch.clientY - startY);
 
-/* FILTER */
-.filters {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-}
+    /* 🔥 erst ab Bewegung wirklich draggen */
+    if (moveY > 5) {
+        isDragging = true;
+        touchItem.classList.add("dragging");
+    }
 
-.filter-btn.active {
-    background: #30d158;
-    box-shadow: 0 4px 0 #1f9e3a;
-}
+    if (!isDragging) return;
 
-/* COUNTER */
-#counter {
-    margin-bottom: 10px;
-    color: #aaa;
-}
+    e.preventDefault();
 
-/* LIST */
-ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
+    const after = getDragAfterElement(list, touch.clientY);
 
-li {
-    display: flex;
-    align-items: center;
-    background: #1c1c1e;
-    padding: 12px;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    transition: transform 0.15s ease;
-}
+    if (after == null) list.appendChild(touchItem);
+    else list.insertBefore(touchItem, after);
+}, { passive: false });
 
-/* 🔥 Drag Feedback */
-li.dragging {
-    transform: scale(1.05);
-    background: #2c2c2e;
-}
+list.addEventListener("touchend", () => {
+    if (!touchItem) return;
 
-/* LEFT */
-.li-left {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
+    touchItem.classList.remove("dragging");
 
-/* 🔥 Apple Checkbox */
-li input[type="checkbox"] {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    appearance: none;
-    background: #222;
-    border: 2px solid #0a84ff;
-    cursor: pointer;
-    position: relative;
-}
+    if (isDragging) {
+        const items = Array.from(list.children);
+        const newTodos = [];
 
-li input[type="checkbox"]:checked {
-    background: #0a84ff;
-}
+        items.forEach(li => {
+            const idx = Number(li.dataset.index);
+            if (todos[idx]) newTodos.push(todos[idx]);
+        });
 
-li input[type="checkbox"]:checked::after {
-    content: "✓";
-    color: white;
-    position: absolute;
-    font-size: 14px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -55%);
-}
+        if (newTodos.length === todos.length) {
+            todos = newTodos;
+            saveLists();
+            render();
+        }
+    }
 
-/* TEXT */
-li span {
-    flex: 1;
-    word-break: break-word;
-    line-height: 22px;
-    text-align: left;
-    margin: 0 10px;
-}
+    touchItem = null;
+    isDragging = false;
+});
 
-/* DRAG HANDLE */
-.drag-handle {
-    cursor: grab;
-    color: #555;
-    font-size: 24px;
-}
-
-/* EDIT */
-.edit-input {
-    flex: 1;
-    padding: 5px 8px;
-    margin: 0 10px;
-    height: 32px;
-    border-radius: 5px;
-    border: 1px solid #0a84ff;
-    background: #222;
-    color: white;
-}
-
-/* ERLEDIGT */
-.erledigt {
-    text-decoration: line-through;
-    color: #888;
-}
-
-/* DELETE */
-li button.delete {
-    background: #0a84ff;
-}
-
-/* FOOTER */
-footer {
-    margin-top: auto;
-    text-align: center;
-    font-size: 12px;
-    color: #888;
-    background: #111;
-    padding: 15px;
-    border-top: 1px solid #222;
-}
-
-/* MOBILE */
-@media (max-width:600px){
-
-.app{
-margin:20px 10px;
-padding:15px;
-}
-
-.input-area{
-flex-direction:column;
-}
-
-.input-area button{
-width:100%;
-font-size:18px;
-padding:14px;
-}
-
-h1{
-font-size:22px;
-}
-
-li{
-flex-direction:row;
-align-items:center;
-flex-wrap:wrap;
-gap:10px;
-}
-
-li span{
-flex:1;
-text-align:left;
-margin:0;
-}
-
-.navbar{
-padding:10px 15px;
-}
-
-button{
-padding:10px;
-}
-
-}
+/* -------------------------------
+   START
+--------------------------------- */
+renderTabs();
+render();
