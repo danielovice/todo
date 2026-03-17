@@ -40,6 +40,27 @@ listTitle.textContent = currentList;
 let todos = lists[currentList];
 
 /* -------------------------------
+   🔥 SCROLL VERHALTEN PRÜFEN
+--------------------------------- */
+function checkScroll() {
+    const body = document.body;
+    const html = document.documentElement;
+    
+    const pageHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight);
+    const viewportHeight = window.innerHeight;
+    
+    if (pageHeight <= viewportHeight) {
+        body.classList.add("no-scroll");
+    } else {
+        body.classList.remove("no-scroll");
+    }
+}
+
+// Beim Laden und bei Fenster-Änderung prüfen
+window.addEventListener("load", checkScroll);
+window.addEventListener("resize", checkScroll);
+
+/* -------------------------------
    MENÜ (Hamburger)
 --------------------------------- */
 menuBtn.addEventListener("click", (e) => {
@@ -166,7 +187,6 @@ function render() {
         dragHandle.draggable = true;
         dragHandle.textContent = "⋮⋮";
         
-        // 🔥 iOS: Alle Touch-Events stoppen
         dragHandle.addEventListener("touchstart", handleTouchStart, { passive: false });
         dragHandle.addEventListener("touchmove", handleTouchMove, { passive: false });
         dragHandle.addEventListener("touchend", handleTouchEnd, { passive: false });
@@ -202,6 +222,7 @@ function render() {
     });
 
     updateCounter();
+    checkScroll();
 }
 
 /* -------------------------------
@@ -329,7 +350,7 @@ function getDragAfterElement(container, y) {
 }
 
 /* -------------------------------
-   TOUCH DRAG (iOS/Mobile) - 🔥 FIXED
+   TOUCH DRAG (iOS/Mobile)
 --------------------------------- */
 let touchItem = null;
 let touchStartY = 0;
@@ -347,7 +368,6 @@ function handleTouchStart(e) {
     currentDragIndex = Number(li.dataset.index);
     hasMoved = false;
     
-    // 🔥 iOS: preventDefault beim Start
     e.preventDefault();
     e.stopPropagation();
 }
@@ -359,13 +379,11 @@ function handleTouchMove(e) {
     const moveY = Math.abs(touch.clientY - touchStartY);
     const moveX = Math.abs(touch.clientX - touchStartX);
     
-    // 🔥 iOS: Erst nach vertikaler Bewegung draggen starten
     if (!hasMoved) {
         if (moveY > 10 && moveY > moveX) {
             hasMoved = true;
             touchItem.classList.add("dragging");
         } else if (moveX > 20) {
-            // Horizontale Bewegung = kein Drag
             touchItem = null;
             hasMoved = false;
             return;
@@ -374,7 +392,6 @@ function handleTouchMove(e) {
     
     if (!hasMoved) return;
     
-    // 🔥 iOS: preventDefault ist KRITISCH
     e.preventDefault();
     e.stopPropagation();
     
