@@ -197,6 +197,9 @@ function addTodo() {
     if (!text) return;
     todos.push({ text: text, erledigt: false });
     input.value = "";
+/* 🔥 Tastatur schließen */
+    input.blur();
+   
     saveLists();
     render();
 }
