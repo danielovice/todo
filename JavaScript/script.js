@@ -24,7 +24,11 @@ let filter = null;
 const savedLists = localStorage.getItem("todoLists");
 const savedCurrentList = localStorage.getItem("todoCurrentList");
 
-lists = savedLists ? JSON.parse(savedLists) : { "Meine Liste": [] };
+try {
+    lists = savedLists ? JSON.parse(savedLists) : { "Meine Liste": [] };
+} catch (e) {
+    lists = { "Meine Liste": [] };
+}
 
 if (savedCurrentList && lists[savedCurrentList]) {
     currentList = savedCurrentList;
@@ -67,7 +71,6 @@ function startEditingListTitle() {
                 listTitle.textContent = currentList;
                 return;
             }
-            // Liste umbenennen
             lists[newName] = lists[currentList];
             delete lists[currentList];
             currentList = newName;
@@ -148,7 +151,6 @@ function render() {
         const li = document.createElement("li");
         li.dataset.index = index;
 
-        // Drag + Checkbox Container
         const leftDiv = document.createElement("div");
         leftDiv.className = "li-left";
 
@@ -156,6 +158,7 @@ function render() {
         dragHandle.className = "drag-handle";
         dragHandle.draggable = true;
         dragHandle.textContent = "⋮⋮";
+        dragHandle.addEventListener("touchstart", e => e.stopPropagation());
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
@@ -166,13 +169,11 @@ function render() {
         leftDiv.appendChild(dragHandle);
         leftDiv.appendChild(checkbox);
 
-        // Todo Text
         const span = document.createElement("span");
-        span.textContent = todo.text; // XSS-sicher
+        span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
         span.addEventListener("dblclick", () => startEditing(span, index));
 
-        // Delete Button
         const delBtn = document.createElement("button");
         delBtn.textContent = "X";
         delBtn.className = "delete";
@@ -190,7 +191,7 @@ function render() {
 }
 
 /* -------------------------------
-   TODOS HINZUFÜGEN (Mit Mobile Fix)
+   TODOS HINZUFÜGEN
 --------------------------------- */
 function addTodo() {
     const text = input.value.trim();
@@ -198,16 +199,12 @@ function addTodo() {
     
     todos.push({ text: text, erledigt: false });
     input.value = "";
-    
-    // 🔥 Tastatur zuverlässig schließen + Zoom verhindern
     input.blur();
     
-    // iOS Safari: Verhindert Auto-Zoom beim Focus
     setTimeout(() => {
         if (document.activeElement === input) {
             input.blur();
         }
-        // Scrollt leicht, um Zoom zu resetten
         window.scrollTo(window.scrollX, window.scrollY);
     }, 100);
    
@@ -260,7 +257,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP (Mouse)
+   DRAG & DROP (Mouse) - Smoother
 --------------------------------- */
 let draggedItemIndex = null;
 
@@ -273,6 +270,7 @@ list.addEventListener("dragstart", e => {
     li.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", draggedItemIndex);
+    e.dataTransfer.setDragImage(li, 20, 20);
 });
 
 list.addEventListener("dragend", e => {
@@ -318,13 +316,13 @@ function getDragAfterElement(container, y) {
 }
 
 /* -------------------------------
-   TOUCH DRAG (Mobile - Fixed)
+   TOUCH DRAG (Mobile - Smoother)
 --------------------------------- */
 let touchItem = null;
 let touchStartY = 0;
 let touchStartX = 0;
 let hasMoved = false;
-let lastTouchY = 0;
+let originalPosition = null;
 
 list.addEventListener("touchstart", e => {
     const handle = e.target.closest(".drag-handle");
@@ -336,11 +334,10 @@ list.addEventListener("touchstart", e => {
     touchItem = li;
     touchStartY = e.touches[0].clientY;
     touchStartX = e.touches[0].clientX;
-    lastTouchY = touchStartY;
     hasMoved = false;
+    originalPosition = li.getBoundingClientRect();
     
-    // 🔥 Verhindert horizontales Scrollen der Page während Drag
-    e.preventDefault();
+    e.stopPropagation();
 }, { passive: false });
 
 list.addEventListener("touchmove", e => {
@@ -350,13 +347,11 @@ list.addEventListener("touchmove", e => {
     const moveY = Math.abs(touch.clientY - touchStartY);
     const moveX = Math.abs(touch.clientX - touchStartX);
     
-    // 🔥 Nur vertikale Bewegung = Drag, horizontale = ignorieren
     if (!hasMoved) {
-        if (moveY > 10 && moveY > moveX) {
+        if (moveY > 8 && moveY > moveX) {
             hasMoved = true;
             touchItem.classList.add("dragging");
-        } else if (moveX > 10) {
-            // Horizontale Bewegung → Drag abbrechen
+        } else if (moveX > 15) {
             touchItem = null;
             hasMoved = false;
             return;
@@ -365,7 +360,6 @@ list.addEventListener("touchmove", e => {
     
     if (!hasMoved) return;
     
-    // 🔥 Verhindert Page-Scroll während Drag
     e.preventDefault();
     
     const after = getDragAfterElement(list, touch.clientY);
@@ -375,8 +369,6 @@ list.addEventListener("touchmove", e => {
     } else {
         list.insertBefore(touchItem, after);
     }
-    
-    lastTouchY = touch.clientY;
 }, { passive: false });
 
 list.addEventListener("touchend", e => {
@@ -402,9 +394,9 @@ list.addEventListener("touchend", e => {
         }
     }
     
-    // Reset
     touchItem = null;
     hasMoved = false;
+    originalPosition = null;
 });
 
 /* -------------------------------
