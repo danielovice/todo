@@ -393,6 +393,65 @@ addListBtn.addEventListener("click", () => {
 --------------------------------- */
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js").catch(err => console.log("SW Fehler:", err));
 
+const addListModal = document.getElementById("addListModal");
+const listNameInput = document.getElementById("listNameInput");
+const listTypeSelect = document.getElementById("listTypeSelect");
+const colorCircles = document.querySelectorAll(".color-circle");
+const confirmAddListBtn = document.getElementById("confirmAddListBtn");
+
+let selectedColor = "#0a84ff"; // Standardfarbe
+
+// Öffnen des Modals
+addListBtn.addEventListener("click", () => {
+    listNameInput.value = "";
+    listTypeSelect.value = "todo";
+    colorCircles.forEach(c => c.classList.remove("selected"));
+    colorCircles[0].classList.add("selected");
+    selectedColor = "#0a84ff";
+    addListModal.style.display = "flex";
+    listNameInput.focus();
+});
+
+// Farbe auswählen
+colorCircles.forEach(circle => {
+    circle.addEventListener("click", () => {
+        colorCircles.forEach(c => c.classList.remove("selected"));
+        circle.classList.add("selected");
+        selectedColor = circle.dataset.color;
+    });
+});
+
+// Liste bestätigen
+confirmAddListBtn.addEventListener("click", () => {
+    const name = listNameInput.value.trim();
+    if (!name) {
+        alert("Bitte einen Namen eingeben!");
+        return;
+    }
+    if (lists[name]) {
+        alert("Liste existiert bereits!");
+        return;
+    }
+
+    const type = listTypeSelect.value;
+
+    lists[name] = { todos: [], type: type, color: selectedColor };
+    currentList = name;
+    todos = lists[name].todos;
+    listTitle.textContent = name;
+
+    saveLists();
+    renderTabs();
+    render();
+
+    addListModal.style.display = "none";
+});
+
+// Modal schließen wenn man außerhalb klickt
+addListModal.addEventListener("click", (e) => {
+    if (e.target === addListModal) addListModal.style.display = "none";
+});
+
 /* -------------------------------
    START
 --------------------------------- */
