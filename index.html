@@ -66,13 +66,13 @@ HTBLA Traun
 
 <script src="JavaScript/script.js"></script>
 
-  <div id="addListModal" class="modal">
+<div id="addListModal" class="modal">
     <div class="modal-content">
-        <h2>Neue Liste erstellen</h2>
-        <label for="listNameInput">Name der Liste:</label>
-        <input type="text" id="listNameInput" placeholder="Meine Liste">
+        <h2>Neue Liste</h2>
 
-        <label>Art der Liste:</label>
+        <input type="text" id="listNameInput" placeholder="Name der Liste">
+
+        <label for="listTypeSelect">Listentyp:</label>
         <select id="listTypeSelect">
             <option value="todo">Normale Todo</option>
             <option value="shopping">Einkaufsliste</option>
@@ -80,15 +80,22 @@ HTBLA Traun
 
         <label>Button-Farbe:</label>
         <div class="color-options">
-            <div class="color-circle" data-color="#0a84ff" style="background:#0a84ff;"></div>
-            <div class="color-circle" data-color="#30d158" style="background:#30d158;"></div>
+            <div class="color-circle" data-color="#ff3b30" style="background:#ff3b30;"></div>
             <div class="color-circle" data-color="#ff9500" style="background:#ff9500;"></div>
+            <div class="color-circle" data-color="#ffcc00" style="background:#ffcc00;"></div>
+            <div class="color-circle" data-color="#34c759" style="background:#34c759;"></div>
+            <div class="color-circle" data-color="#5ac8fa" style="background:#5ac8fa;"></div>
+            <div class="color-circle" data-color="#0a84ff" style="background:#0a84ff;"></div>
+            <div class="color-circle" data-color="#5856d6" style="background:#5856d6;"></div>
+            <div class="color-circle" data-color="#ff2d55" style="background:#ff2d55;"></div>
             <div class="color-circle" data-color="#bf5af2" style="background:#bf5af2;"></div>
+            <div class="color-circle" data-color="#c7a56b" style="background:#c7a56b;"></div>
+            <div class="color-circle" data-color="#8e8e93" style="background:#8e8e93;"></div>
+            <div class="color-circle" data-color="#f5c7be" style="background:#f5c7be;"></div>
         </div>
 
         <button id="confirmAddListBtn">OK</button>
     </div>
 </div>
-
 </body>
 </html>
