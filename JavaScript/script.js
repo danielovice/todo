@@ -399,14 +399,14 @@ const listTypeSelect = document.getElementById("listTypeSelect");
 const colorCircles = document.querySelectorAll(".color-circle");
 const confirmAddListBtn = document.getElementById("confirmAddListBtn");
 
-let selectedColor = "#0a84ff"; // Standardfarbe
+let selectedColor = "#0a84ff";
 
 // Öffnen des Modals
 addListBtn.addEventListener("click", () => {
     listNameInput.value = "";
     listTypeSelect.value = "todo";
     colorCircles.forEach(c => c.classList.remove("selected"));
-    colorCircles[0].classList.add("selected");
+    colorCircles[5].classList.add("selected"); // Standard Blau
     selectedColor = "#0a84ff";
     addListModal.style.display = "flex";
     listNameInput.focus();
@@ -451,7 +451,6 @@ confirmAddListBtn.addEventListener("click", () => {
 addListModal.addEventListener("click", (e) => {
     if (e.target === addListModal) addListModal.style.display = "none";
 });
-
 /* -------------------------------
    START
 --------------------------------- */
