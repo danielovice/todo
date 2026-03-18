@@ -1,1 +1,415 @@
-/* ------------------------------------------- GRUNDSTILE & RESET -------------------------------------------- */ * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; } html, body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: white; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; overflow-y: auto; } body { overscroll-behavior-y: contain; touch-action: pan-y; } body.no-scroll { overflow: hidden; position: fixed; width: 100%; } /* Textauswahl nur bei Inputs erlauben */ input, textarea, [contenteditable], .edit-input { -webkit-user-select: text; -khtml-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; touch-action: auto; } /* ------------------------------------------- NAVBAR -------------------------------------------- */ .navbar { display: flex; justify-content: space-between; align-items: center; background: #111; padding: 12px 20px; border-bottom: 1px solid #222; position: sticky; top: 0; z-index: 50; flex-shrink: 0; } .logo { font-weight: 600; font-size: 18px; letter-spacing: -0.3px; } .nav-buttons { display: flex; gap: 10px; align-items: center; } /* ------------------------------------------- BUTTONS (Allgemein) -------------------------------------------- */ button { padding: 10px 14px; border-radius: 12px; border: none; background: #0a84ff; color: white; cursor: pointer; font-weight: 500; box-shadow: 0 4px 0 #0060df; transition: transform 0.1s ease, box-shadow 0.1s ease; -webkit-user-select: none; user-select: none; } button:active { transform: translateY(2px); box-shadow: 0 2px 0 #0060df; } /* ------------------------------------------- MENÜ (Listen-Auswahl) -------------------------------------------- */ .menu { position: relative; } #menuDropdown { position: absolute; right: 0; top: 45px; background: #111; border: 1px solid #222; border-radius: 14px; padding: 10px; display: none; flex-direction: column; gap: 6px; min-width: 200px; z-index: 100; box-shadow: 0 12px 40px rgba(0,0,0,0.5); } .menu:hover #menuDropdown { display: flex; } .list-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; } .list-item button:first-child { flex: 1; text-align: left; padding: 12px 14px; font-size: 15px; background: #0a84ff; color: white; border-radius: 10px; box-shadow: 0 2px 0 #0055cc; } .list-item button:first-child:active { transform: translateY(1px); box-shadow: none; } .list-item button:last-child { padding: 12px 14px; font-size: 15px; min-width: 40px; background: #ff453a; box-shadow: 0 2px 0 #cc372e; } /* ------------------------------------------- APP Container -------------------------------------------- */ .app { margin: 25px auto; width: 92%; max-width: 520px; background: #111; border-radius: 22px; padding: 18px; box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7); touch-action: pan-y; flex-shrink: 0; } /* 🔥 Listentitel GRÖSSER */ h1 { text-align: center; cursor: pointer; margin: 0 0 20px 0; font-weight: 700; font-size: 32px; letter-spacing: -0.5px; } /* ------------------------------------------- INPUT Area -------------------------------------------- */ .input-area { display: flex; gap: 10px; margin-bottom: 12px; } input[type="text"] { flex: 1; padding: 14px 16px; border-radius: 12px; border: none; background: #1c1c1e; color: white; font-size: 17px; outline: none; } input[type="text"]::placeholder { color: #666; } /* ------------------------------------------- FILTER BUTTONS (Ganz Blau) -------------------------------------------- */ .filters { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; } .filter-btn { padding: 8px 14px; font-size: 14px; background: #0a84ff; color: white; box-shadow: 0 3px 0 #0060df; border-radius: 10px; transition: transform 0.1s ease, box-shadow 0.1s ease; } .filter-btn.active { background: #30d158; box-shadow: 0 3px 0 #1f9e3a; } .filter-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0060df; } /* ------------------------------------------- COUNTER -------------------------------------------- */ #counter { margin-bottom: 8px; color: #999; font-size: 14px; text-align: center; } /* ------------------------------------------- TODO LIST -------------------------------------------- */ ul { list-style: none; padding: 0; margin: 0; } li { display: flex; align-items: center; background: #1c1c1e; padding: 11px 12px; border-radius: 13px; margin-bottom: 6px; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out; touch-action: pan-y; } /* 🔥 Drag-Feedback */ li.dragging { opacity: 0.95; transform: scale(1.04); box-shadow: 0 15px 40px rgba(10, 132, 255, 0.4); z-index: 10; background: #2a2a2e; border: 2px solid #0a84ff; transition: transform 0.08s ease-out, box-shadow 0.08s ease-out; } .li-left { display: flex; align-items: center; gap: 12px; } /* 🍎 Apple-Style: Runde Checkboxen - KEIN HOVER */ li input[type="checkbox"] { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #555; background: #2a2a2e; accent-color: transparent; -webkit-appearance: none; -moz-appearance: none; appearance: none; position: relative; cursor: pointer; transition: all 0.15s ease; flex-shrink: 0; } /* 🔥 KEIN Hover-Effekt */ li input[type="checkbox"]:animate { background: #0a84ff; border-color: #0a84ff; animation: popCheck 0.2s ease; } li input[type="checkbox"]:checked::after { content: "✓"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1); color: white; font-size: 15px; font-weight: 700; line-height: 1; } @keyframes popCheck { 0% { transform: scale(0.8); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } } /* 🔥 TODO TEXT - KEIN HOVER */ li span { flex: 1; word-break: break-word; line-height: 24px; text-align: left; margin: 0 6px; font-size: 17px; min-width: 0; cursor: pointer; padding: 6px 8px; border-radius: 6px; display: inline-block; } /* 🔥 Hover-Effekt ENTFERNT */ /* 🎯 Drag Handle */ .drag-handle { cursor: grab; color: #666; font-size: 22px; display: flex; align-items: center; justify-content: center; height: 32px; width: 36px; border-radius: 8px; transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; } .drag-handle:active { cursor: grabbing; background: #3a3a3e; color: #0a84ff; transform: scale(1.1); } /* ✏️ Edit Input */ .edit-input { flex: 1; padding: 6px 8px; margin: 0 6px; font-size: 17px; line-height: 24px; height: 36px; min-height: 36px; border-radius: 6px; border: 2px solid #0a84ff; background: #2a2a2e; color: white; outline: none; -webkit-user-select: text; user-select: text; display: inline-block; vertical-align: middle; box-sizing: border-box; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } /* ------------------------------------------- ERLEDIGT Style -------------------------------------------- */ .erledigt { text-decoration: line-through; color: #777; opacity: 0.85; } /* ------------------------------------------- DELETE Button -------------------------------------------- */ li button.delete { background: #ff453a; box-shadow: 0 3px 0 #cc372e; padding: 8px 12px; font-weight: 600; min-width: 36px; } li button.delete:active { box-shadow: 0 1px 0 #cc372e; } /* ------------------------------------------- FOOTER -------------------------------------------- */ footer { margin-top: auto; text-align: center; font-size: 12px; color: #777; background: #111; padding: 18px 15px; border-top: 1px solid #222; flex-shrink: 0; } /* ------------------------------------------- 📱 MOBILE -------------------------------------------- */ @media (max-width: 600px) { html, body { overflow-y: auto; overflow-x: hidden; } .app { margin: 15px 12px; padding: 16px; border-radius: 20px; } .input-area { flex-direction: column; gap: 8px; } .input-area button { width: 100%; font-size: 17px; padding: 15px; } h1 { font-size: 28px; margin-bottom: 18px; } li { padding: 12px 10px; margin-bottom: 5px; border-radius: 14px; } li span { font-size: 17px; margin: 0 4px; padding: 6px 8px; } li input[type="checkbox"] { width: 28px; height: 28px; } .drag-handle { font-size: 24px; width: 40px; height: 34px; } .navbar { padding: 10px 15px; } button { padding: 11px 13px; font-size: 15px; border-radius: 12px; } #menuDropdown { right: -10px; min-width: 230px; padding: 12px; } .list-item { padding: 3px 0; gap: 6px; } .list-item button { font-size: 16px; padding: 13px 15px; border-radius: 11px; } .filter-btn { padding: 9px 15px; font-size: 15px; } .edit-input { font-size: 17px; padding: 6px 8px; margin: 0 4px; height: 36px; } } /* ------------------------------- EDIT FIX (kein Springen) --------------------------------- */ .edit-input { font: inherit; width: 100%; box-sizing: border-box; } /* Todo bleibt in einer Reihe */ li { display: flex; align-items: center; } li span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Listentitel bleibt stabil */ #listTitle input { width: 100%; font: inherit; } /* ------------------------------- CHECKBOX ANIMATION FIX --------------------------------- */ input[type="checkbox"].animate { animation: popCheck 0.2s ease; }
+/* -------------------------------------------
+   GRUNDSTILE & RESET
+-------------------------------------------- */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+html, body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #000;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+body {
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+}
+
+body.no-scroll {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
+/* Textauswahl nur bei Inputs erlauben */
+input, textarea, [contenteditable], .edit-input {
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    touch-action: auto;
+}
+
+/* -------------------------------------------
+   NAVBAR
+-------------------------------------------- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #111;
+    padding: 12px 20px;
+    border-bottom: 1px solid #222;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    flex-shrink: 0;
+}
+
+.logo {
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* -------------------------------------------
+   BUTTONS (Allgemein)
+-------------------------------------------- */
+button {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: none;
+    background: #0a84ff;
+    color: white;
+    cursor: pointer;
+    font-weight: 500;
+    box-shadow: 0 4px 0 #0060df;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #0060df;
+}
+
+/* -------------------------------------------
+   MENÜ (Listen-Auswahl)
+-------------------------------------------- */
+.menu {
+    position: relative;
+}
+
+#menuDropdown {
+    position: absolute;
+    right: 0;
+    top: 45px;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 14px;
+    padding: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 200px;
+    z-index: 100;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+
+.menu:hover #menuDropdown {
+    display: flex;
+}
+
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.list-item button:first-child {
+    flex: 1;
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 15px;
+    background: #0a84ff;
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 0 #0055cc;
+}
+
+.list-item button:first-child:active {
+    transform: translateY(1px);
+    box-shadow: none;
+}
+
+.list-item button:last-child {
+    padding: 12px 14px;
+    font-size: 15px;
+    min-width: 40px;
+    background: #ff453a;
+    box-shadow: 0 2px 0 #cc372e;
+}
+
+/* -------------------------------------------
+   APP Container
+-------------------------------------------- */
+.app {
+    margin: 25px auto;
+    width: 92%;
+    max-width: 520px;
+    background: #111;
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7);
+    touch-action: pan-y;
+    flex-shrink: 0;
+}
+
+/* 🔥 Listentitel GRÖSSER & umbrechbar */
+h1, #listTitle {
+    text-align: center;
+    cursor: pointer;
+    margin: 0 0 20px 0;
+    font-weight: 700;
+    font-size: 32px;
+    letter-spacing: -0.5px;
+    white-space: normal;       /* umbrechen möglich */
+    word-break: break-word;    /* Zeilenumbruch bei langen Wörtern */
+}
+
+/* -------------------------------------------
+   INPUT Area
+-------------------------------------------- */
+.input-area {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+input[type="text"] {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: none;
+    background: #1c1c1e;
+    color: white;
+    font-size: 17px;
+    outline: none;
+}
+
+input[type="text"]::placeholder {
+    color: #666;
+}
+
+/* -------------------------------------------
+   FILTER BUTTONS (Ganz Blau)
+-------------------------------------------- */
+.filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+    background: #0a84ff;
+    color: white;
+    box-shadow: 0 3px 0 #0060df;
+    border-radius: 10px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.filter-btn.active {
+    background: #30d158;
+    box-shadow: 0 3px 0 #1f9e3a;
+}
+
+.filter-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #0060df;
+}
+
+/* -------------------------------------------
+   COUNTER
+-------------------------------------------- */
+#counter {
+    margin-bottom: 8px;
+    color: #999;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* -------------------------------------------
+   TODO LIST
+-------------------------------------------- */
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    display: flex;
+    align-items: center;
+    background: #1c1c1e;
+    padding: 11px 12px;
+    border-radius: 13px;
+    margin-bottom: 6px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
+    touch-action: pan-y;
+}
+
+li.dragging {
+    opacity: 0.95;
+    transform: scale(1.08);
+    box-shadow: 0 20px 50px rgba(10, 132, 255, 0.5);
+    z-index: 10;
+    background: #2a2a2e;
+    border: 2px solid #0a84ff;
+    transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+}
+
+.li-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Checkboxen */
+li input[type="checkbox"] {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid #555;
+    background: #2a2a2e;
+    accent-color: transparent;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+li input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Todo Text umbrechbar */
+li span {
+    flex: 1;
+    word-break: break-word;  /* lange Worte umbrechen */
+    white-space: normal;      /* Zeilenumbruch möglich */
+    line-height: 24px;
+    text-align: left;
+    margin: 0 6px;
+    font-size: 17px;
+    min-width: 0;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+/* Drag Handle */
+.drag-handle {
+    cursor: grab;
+    color: #666;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 36px;
+    border-radius: 8px;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+    background: #3a3a3e;
+    color: #0a84ff;
+    transform: scale(1.1);
+}
+
+/* Edit Input */
+.edit-input {
+    flex: 1;
+    padding: 6px 8px;
+    margin: 0 6px;
+    font-size: 17px;
+    line-height: 24px;
+    min-height: 36px;
+    border-radius: 6px;
+    border: 2px solid #0a84ff;
+    background: #2a2a2e;
+    color: white;
+    outline: none;
+    display: inline-block;
+    vertical-align: middle;
+    box-sizing: border-box;
+    width: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Erledigt */
+.erledigt {
+    text-decoration: line-through;
+    color: #777;
+    opacity: 0.85;
+}
+
+/* Delete Button */
+li button.delete {
+    background: #ff453a;
+    box-shadow: 0 3px 0 #cc372e;
+    padding: 8px 12px;
+    font-weight: 600;
+    min-width: 36px;
+}
+
+li button.delete:active {
+    box-shadow: 0 1px 0 #cc372e;
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+    text-align: center;
+    font-size: 12px;
+    color: #777;
+    background: #111;
+    padding: 18px 15px;
+    border-top: 1px solid #222;
+    flex-shrink: 0;
+}
+
+/* MOBILE Anpassungen */
+@media (max-width: 600px) {
+    .app { margin: 15px 12px; padding: 16px; border-radius: 20px; }
+    .input-area { flex-direction: column; gap: 8px; }
+    .input-area button { width: 100%; font-size: 17px; padding: 15px; }
+    h1 { font-size: 28px; margin-bottom: 18px; }
+    li { padding: 12px 10px; margin-bottom: 5px; border-radius: 14px; }
+    li span { font-size: 17px; margin: 0 4px; padding: 6px 8px; white-space: normal; word-break: break-word; }
+    li input[type="checkbox"] { width: 28px; height: 28px; }
+    .drag-handle { font-size: 24px; width: 40px; height: 34px; }
+}
