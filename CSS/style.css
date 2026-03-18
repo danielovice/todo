@@ -309,10 +309,10 @@ li input[type="checkbox"]:checked::after {
 }
 
 /* Todo Text umbrechbar */
-li span {
+li span, li input.edit-input {
     flex: 1;
-    word-break: break-word;  /* lange Worte umbrechen */
-    white-space: normal;      /* Zeilenumbruch möglich */
+    word-break: break-word;
+    white-space: normal;
     line-height: 24px;
     text-align: left;
     margin: 0 6px;
@@ -322,6 +322,19 @@ li span {
     padding: 6px 8px;
     border-radius: 6px;
     display: inline-block;
+}
+
+/* Listentitel Edit Input zentriert und gleich groß wie normal */
+#listTitle input.edit-input {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.1;
+    padding: 0;
+    margin: 0;
+    border: 2px solid #0a84ff;
+    border-radius: 6px;
+    background: #2a2a2e;
 }
 
 /* Drag Handle */
@@ -347,27 +360,6 @@ li span {
     background: #3a3a3e;
     color: #0a84ff;
     transform: scale(1.1);
-}
-
-/* Edit Input */
-.edit-input {
-    flex: 1;
-    padding: 6px 8px;
-    margin: 0 6px;
-    font-size: 17px;
-    line-height: 24px;
-    min-height: 36px;
-    border-radius: 6px;
-    border: 2px solid #0a84ff;
-    background: #2a2a2e;
-    color: white;
-    outline: none;
-    display: inline-block;
-    vertical-align: middle;
-    box-sizing: border-box;
-    width: 100%;
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
 }
 
 /* Erledigt */
@@ -408,8 +400,9 @@ footer {
     .input-area { flex-direction: column; gap: 8px; }
     .input-area button { width: 100%; font-size: 17px; padding: 15px; }
     h1 { font-size: 28px; margin-bottom: 18px; }
+    #listTitle input.edit-input { font-size: 28px; }
     li { padding: 12px 10px; margin-bottom: 5px; border-radius: 14px; }
-    li span { font-size: 17px; margin: 0 4px; padding: 6px 8px; white-space: normal; word-break: break-word; }
+    li span, li input.edit-input { font-size: 17px; white-space: normal; word-break: break-word; }
     li input[type="checkbox"] { width: 28px; height: 28px; }
     .drag-handle { font-size: 24px; width: 40px; height: 34px; }
 }
