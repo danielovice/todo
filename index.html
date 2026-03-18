@@ -66,5 +66,29 @@ HTBLA Traun
 
 <script src="JavaScript/script.js"></script>
 
+  <div id="addListModal" class="modal">
+    <div class="modal-content">
+        <h2>Neue Liste erstellen</h2>
+        <label for="listNameInput">Name der Liste:</label>
+        <input type="text" id="listNameInput" placeholder="Meine Liste">
+
+        <label>Art der Liste:</label>
+        <select id="listTypeSelect">
+            <option value="todo">Normale Todo</option>
+            <option value="shopping">Einkaufsliste</option>
+        </select>
+
+        <label>Button-Farbe:</label>
+        <div class="color-options">
+            <div class="color-circle" data-color="#0a84ff" style="background:#0a84ff;"></div>
+            <div class="color-circle" data-color="#30d158" style="background:#30d158;"></div>
+            <div class="color-circle" data-color="#ff9500" style="background:#ff9500;"></div>
+            <div class="color-circle" data-color="#bf5af2" style="background:#bf5af2;"></div>
+        </div>
+
+        <button id="confirmAddListBtn">OK</button>
+    </div>
+</div>
+
 </body>
 </html>
