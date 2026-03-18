@@ -115,7 +115,6 @@ function startEditingListTitle() {
 // 🔥 FIX: iPhone Support
 listTitle.addEventListener("dblclick", startEditingListTitle);
 
-
 /* -------------------------------
    SPEICHERN
 --------------------------------- */
@@ -179,6 +178,7 @@ function render() {
 
         const li = document.createElement("li");
         li.dataset.index = index;
+        li.style.transition = "transform 0.2s ease"; // Smooth movement
 
         const leftDiv = document.createElement("div");
         leftDiv.className = "li-left";
@@ -205,14 +205,10 @@ function render() {
         span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
 
-     span.addEventListener("dblclick", (e) => {
-    e.stopPropagation();
-    startEditing(span, index);
-});
-
-        span.addEventListener("touchend", (e) => {
+        // 🔥 FIX: Bearbeiten nur mit Doppelklick
+        span.addEventListener("dblclick", (e) => {
             e.stopPropagation();
-            if (!hasMoved) startEditing(span, index);
+            startEditing(span, index);
         });
 
         const delBtn = document.createElement("button");
@@ -308,11 +304,15 @@ list.addEventListener("dragstart", e => {
     if (!li) return;
     draggedItemIndex = Number(li.dataset.index);
     li.classList.add("dragging");
+    li.style.opacity = "0.6";
 });
 
 list.addEventListener("dragend", e => {
     const li = e.target.closest("li");
-    if (li) li.classList.remove("dragging");
+    if (li) {
+        li.classList.remove("dragging");
+        li.style.opacity = "1";
+    }
     draggedItemIndex = null;
 });
 
