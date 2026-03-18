@@ -516,3 +516,38 @@ footer {
         height: 36px;
     }
 }
+
+/* -------------------------------
+   EDIT FIX (kein Springen)
+--------------------------------- */
+.edit-input {
+    font: inherit;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Todo bleibt in einer Reihe */
+li {
+    display: flex;
+    align-items: center;
+}
+
+li span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Listentitel bleibt stabil */
+#listTitle input {
+    width: 100%;
+    font: inherit;
+}
+
+/* -------------------------------
+   CHECKBOX ANIMATION FIX
+--------------------------------- */
+input[type="checkbox"].animate {
+    animation: popCheck 0.2s ease;
+}
