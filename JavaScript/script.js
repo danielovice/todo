@@ -62,7 +62,11 @@ if (lists[currentList]) {
    BUTTON FARBEN AKTUALISIEREN
 --------------------------------- */
 function updateButtonColors(color) {
-    // Hinzufügen Button
+    // "+" Button (addListBtn)
+    addBtn.style.background = color;
+    addBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+    
+    // "Hinzufügen" Button
     addBtn.style.background = color;
     addBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
@@ -75,7 +79,6 @@ function updateButtonColors(color) {
     });
 }
 
-// Farbe abdunkeln für Shadow
 function adjustColor(color, amount) {
     const num = parseInt(color.replace("#",""), 16);
     const r = Math.max(0, Math.min(255, (num >> 16) + amount));
@@ -85,7 +88,7 @@ function adjustColor(color, amount) {
 }
 
 /* -------------------------------
-   SCROLL VERHALTEN PRÜFEN
+   SCROLL VERHALTEN
 --------------------------------- */
 function checkScroll() {
     const body = document.body;
@@ -100,7 +103,7 @@ window.addEventListener("load", checkScroll);
 window.addEventListener("resize", checkScroll);
 
 /* -------------------------------
-   MENÜ (Hamburger)
+   MENÜ
 --------------------------------- */
 menuBtn.addEventListener("click", e => {
     e.stopPropagation();
@@ -169,7 +172,7 @@ function saveLists() {
 }
 
 /* -------------------------------
-   COUNTER UPDATE
+   COUNTER
 --------------------------------- */
 function updateCounter() {
     const done = todos.filter(t => t.erledigt).length;
@@ -211,7 +214,7 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------
-   🔥 KATEGORISIERUNG FÜR EINKAUFS LISTEN
+   KATEGORISIERUNG
 --------------------------------- */
 const itemCategories = {
     'milch': 'Milchprodukte', 'käse': 'Milchprodukte', 'joghurt': 'Milchprodukte',
@@ -249,7 +252,7 @@ function getItemsByCategory(items) {
 }
 
 /* -------------------------------
-   TODOS RENDERN
+   RENDERN
 --------------------------------- */
 function render() {
     list.innerHTML = "";
@@ -359,7 +362,7 @@ addBtn.addEventListener("click", addTodo);
 input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
 
 /* -------------------------------
-   EVENT DELEGATION (Click)
+   EVENT DELEGATION
 --------------------------------- */
 list.addEventListener("click", e => {
     const action = e.target.dataset.action;
@@ -367,9 +370,6 @@ list.addEventListener("click", e => {
     if (!action || index === undefined) return;
     const idx = Number(index);
     if (action === "toggle" && todos[idx]) {
-        const checkbox = e.target;
-        checkbox.classList.add("animate");
-        setTimeout(() => checkbox.classList.remove("animate"), 200);
         todos[idx].erledigt = !todos[idx].erledigt;
         saveLists();
         render();
@@ -382,7 +382,7 @@ list.addEventListener("click", e => {
 });
 
 /* -------------------------------
-   FILTER BUTTONS
+   FILTER
 --------------------------------- */
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -394,7 +394,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP (Desktop)
+   DRAG & DROP
 --------------------------------- */
 let draggedItemIndex = null;
 list.addEventListener("dragstart", e => {
@@ -479,7 +479,7 @@ function handleTouchEnd() {
 }
 
 /* -------------------------------
-   LISTEN MENÜ RENDER (MIT FARBEN!)
+   LISTEN MENÜ RENDER
 --------------------------------- */
 function renderTabs() {
     listTabs.innerHTML = "";
@@ -490,7 +490,6 @@ function renderTabs() {
         const btn = document.createElement("button");
         btn.textContent = name;
         
-        // 🔥 Farbe der Liste übernehmen
         const listColor = lists[name].color || "#0a84ff";
         btn.style.background = listColor;
         btn.style.boxShadow = `0 2px 0 ${adjustColor(listColor, -20)}`;
@@ -500,10 +499,7 @@ function renderTabs() {
             currentList = name;
             todos = lists[name].todos || [];
             listTitle.textContent = name;
-            
-            // 🔥 Buttons mit Listenfarbe aktualisieren
             updateButtonColors(listColor);
-            
             renderTabs();
             render();
         };
@@ -518,11 +514,8 @@ function renderTabs() {
             if (!lists[currentList]) lists[currentList] = { todos: [], type: "todo", color: "#0a84ff" };
             todos = lists[currentList].todos || [];
             listTitle.textContent = currentList;
-            
-            // Farbe der neuen aktuellen Liste
             const newColor = lists[currentList].color || "#0a84ff";
             updateButtonColors(newColor);
-            
             saveLists();
             renderTabs();
             render();
@@ -535,7 +528,7 @@ function renderTabs() {
 }
 
 /* -------------------------------
-   🔥 MODAL FUNKTIONEN
+   MODAL FUNKTIONEN
 --------------------------------- */
 addListBtn.addEventListener("click", () => {
     listNameInput.value = "";
@@ -545,11 +538,20 @@ addListBtn.addEventListener("click", () => {
     selectedColor = "#0a84ff";
     colorPreview.style.color = selectedColor;
     addListModal.style.display = "flex";
-    listNameInput.focus();
+    // KEIN focus() - Tastatur öffnet sich nicht automatisch
 });
 
 closeModalBtn.addEventListener("click", () => {
     addListModal.style.display = "none";
+});
+
+// Wenn Listentyp geändert wird
+listTypeSelect.addEventListener("change", () => {
+    if (listTypeSelect.value === "shopping") {
+        listNameInput.value = "Einkaufsliste"; // 🔥 Automatischer Name!
+    } else {
+        listNameInput.value = "";
+    }
 });
 
 colorCircles.forEach(circle => {
@@ -578,7 +580,6 @@ confirmAddListBtn.addEventListener("click", () => {
     todos = lists[name].todos;
     listTitle.textContent = name;
     
-    // 🔥 Buttons mit neuer Farbe aktualisieren
     updateButtonColors(selectedColor);
     
     saveLists();
