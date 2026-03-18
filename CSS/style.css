@@ -30,7 +30,6 @@ body.no-scroll {
     width: 100%;
 }
 
-/* Textauswahl nur bei Inputs erlauben */
 input, textarea, [contenteditable], .edit-input {
     -webkit-user-select: text;
     -khtml-user-select: text;
@@ -69,7 +68,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   BUTTONS (Allgemein) - Wird per JS dynamisch gefärbt
+   BUTTONS
 -------------------------------------------- */
 button {
     padding: 10px 14px;
@@ -91,7 +90,7 @@ button:active {
 }
 
 /* -------------------------------------------
-   MENÜ (Listen-Auswahl)
+   MENÜ
 -------------------------------------------- */
 .menu {
     position: relative;
@@ -150,7 +149,7 @@ button:active {
 }
 
 /* -------------------------------------------
-   APP Container
+   APP
 -------------------------------------------- */
 .app {
     margin: 25px auto;
@@ -164,7 +163,6 @@ button:active {
     flex-shrink: 0;
 }
 
-/* Listentitel GRÖSSER */
 h1, #listTitle {
     text-align: center;
     cursor: pointer;
@@ -279,7 +277,6 @@ li.dragging {
     gap: 12px;
 }
 
-/* Checkboxen */
 li input[type="checkbox"] {
     width: 26px;
     height: 26px;
@@ -313,7 +310,6 @@ li input[type="checkbox"]:checked::after {
     line-height: 1;
 }
 
-/* Todo Text */
 li span, li input.edit-input {
     flex: 1;
     word-break: break-word;
@@ -329,7 +325,6 @@ li span, li input.edit-input {
     display: inline-block;
 }
 
-/* Listentitel Edit Input */
 #listTitle input.edit-input {
     text-align: center;
     font-size: 32px;
@@ -342,7 +337,6 @@ li span, li input.edit-input {
     background: #2a2a2e;
 }
 
-/* Drag Handle */
 .drag-handle {
     cursor: grab;
     color: #666;
@@ -367,14 +361,12 @@ li span, li input.edit-input {
     transform: scale(1.1);
 }
 
-/* Erledigt */
 .erledigt {
     text-decoration: line-through;
     color: #777;
     opacity: 0.85;
 }
 
-/* Delete Button */
 li button.delete {
     background: #ff453a;
     box-shadow: 0 3px 0 #cc372e;
@@ -387,7 +379,6 @@ li button.delete:active {
     box-shadow: 0 1px 0 #cc372e;
 }
 
-/* Footer */
 footer {
     margin-top: auto;
     text-align: center;
@@ -400,7 +391,7 @@ footer {
 }
 
 /* -------------------------------------------
-   🔥 MODAL FÜR NEUE LISTE (OBEN!)
+   MODAL
 -------------------------------------------- */
 .modal {
     display: none;
@@ -411,10 +402,10 @@ footer {
     height: 100%;
     background: rgba(0, 0, 0, 0.8);
     justify-content: center;
-    align-items: flex-start; /* 🔥 OBEN statt unten */
+    align-items: flex-start;
     z-index: 1000;
     animation: modalFadeIn 0.3s ease;
-    padding-top: 60px; /* Abstand von oben */
+    padding-top: 60px;
 }
 
 @keyframes modalFadeIn {
@@ -431,7 +422,7 @@ footer {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    animation: modalSlideDown 0.3s ease; /* 🔥 Slide von oben */
+    animation: modalSlideDown 0.3s ease;
     max-height: 85vh;
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
@@ -454,13 +445,12 @@ footer {
     font-weight: 700;
 }
 
-/* 🔥 X-KNOPF ROT */
 .modal-close {
     width: 36px;
     height: 36px;
     border-radius: 50%;
     border: none;
-    background: #ff3b30; /* 🔥 ROT */
+    background: #ff3b30;
     color: white;
     font-size: 18px;
     cursor: pointer;
@@ -476,7 +466,6 @@ footer {
     box-shadow: 0 2px 0 #cc2f26;
 }
 
-/* ✓-Knopf blau */
 .modal-save {
     width: 36px;
     height: 36px;
@@ -498,7 +487,6 @@ footer {
     box-shadow: 0 2px 0 #0060df;
 }
 
-/* Color Preview Circle */
 .color-preview {
     display: flex;
     justify-content: center;
@@ -507,7 +495,6 @@ footer {
     transition: color 0.3s;
 }
 
-/* List Name Input */
 #listNameInput {
     padding: 16px;
     border-radius: 12px;
@@ -523,7 +510,6 @@ footer {
     color: #636366;
 }
 
-/* List Type Selector */
 .list-type-selector {
     display: flex;
     justify-content: space-between;
@@ -548,14 +534,12 @@ footer {
     text-align: right;
 }
 
-/* Color Label */
 .color-label {
     color: #8e8e93;
     font-size: 15px;
     margin-top: 8px;
 }
 
-/* Color Options */
 .color-options {
     display: flex;
     flex-wrap: wrap;
@@ -594,9 +578,7 @@ footer {
     text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
-/* -------------------------------------------
-   🔥 KATEGORIEN FÜR EINKAUFS LISTEN
--------------------------------------------- */
+/* Kategorien */
 .category-header {
     background: #2c2c2e;
     padding: 10px 16px;
@@ -615,75 +597,18 @@ footer {
     font-size: 16px;
 }
 
-.category-item {
-    margin-left: 20px;
-}
-
-/* -------------------------------------------
-   MOBILE Anpassungen
--------------------------------------------- */
+/* MOBILE */
 @media (max-width: 600px) {
-    .app {
-        margin: 15px 12px;
-        padding: 16px;
-        border-radius: 20px;
-    }
-
-    .input-area {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .input-area button {
-        width: 100%;
-        font-size: 17px;
-        padding: 15px;
-    }
-
-    h1 {
-        font-size: 28px;
-        margin-bottom: 18px;
-    }
-
-    #listTitle input.edit-input {
-        font-size: 28px;
-    }
-
-    li {
-        padding: 12px 10px;
-        margin-bottom: 5px;
-        border-radius: 14px;
-    }
-
-    li span,
-    li input.edit-input {
-        font-size: 17px;
-        white-space: normal;
-        word-break: break-word;
-    }
-
-    li input[type="checkbox"] {
-        width: 28px;
-        height: 28px;
-    }
-
-    .drag-handle {
-        font-size: 24px;
-        width: 40px;
-        height: 34px;
-    }
-
-    .modal {
-        padding-top: 40px;
-    }
-
-    .modal-content {
-        border-radius: 16px;
-        padding: 16px;
-    }
-
-    .color-circle {
-        width: 36px;
-        height: 36px;
-    }
+    .app { margin: 15px 12px; padding: 16px; border-radius: 20px; }
+    .input-area { flex-direction: column; gap: 8px; }
+    .input-area button { width: 100%; font-size: 17px; padding: 15px; }
+    h1 { font-size: 28px; margin-bottom: 18px; }
+    #listTitle input.edit-input { font-size: 28px; }
+    li { padding: 12px 10px; margin-bottom: 5px; border-radius: 14px; }
+    li span, li input.edit-input { font-size: 17px; }
+    li input[type="checkbox"] { width: 28px; height: 28px; }
+    .drag-handle { font-size: 24px; width: 40px; height: 34px; }
+    .modal { padding-top: 40px; }
+    .modal-content { border-radius: 16px; padding: 16px; }
+    .color-circle { width: 36px; height: 36px; }
 }
