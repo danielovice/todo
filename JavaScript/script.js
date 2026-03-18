@@ -114,10 +114,7 @@ function startEditingListTitle() {
 
 // 🔥 FIX: iPhone Support
 listTitle.addEventListener("dblclick", startEditingListTitle);
-listTitle.addEventListener("touchend", (e) => {
-    e.stopPropagation();
-    startEditingListTitle();
-});
+
 
 /* -------------------------------
    SPEICHERN
@@ -208,11 +205,10 @@ function render() {
         span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
 
-        // 🔥 FIX: EDIT funktioniert auf Handy + PC
-        span.addEventListener("dblclick", (e) => {
-            e.stopPropagation();
-            startEditing(span, index);
-        });
+     span.addEventListener("dblclick", (e) => {
+    e.stopPropagation();
+    startEditing(span, index);
+});
 
         span.addEventListener("touchend", (e) => {
             e.stopPropagation();
