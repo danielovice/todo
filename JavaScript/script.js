@@ -67,12 +67,23 @@ document.addEventListener("click", e => {
 /* -------------------------------
    LISTENNAME BEARBEITEN
 --------------------------------- */
+let lastTapTitle = 0;
+function handleTouchEditTitle() {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTitle;
+    if (tapLength < 300 && tapLength > 0) startEditingListTitle();
+    lastTapTitle = currentTime;
+}
+listTitle.addEventListener("dblclick", startEditingListTitle);
+listTitle.addEventListener("touchend", handleTouchEditTitle);
+
 function startEditingListTitle() {
     const currentName = currentList;
     const inputField = document.createElement("input");
     inputField.type = "text";
     inputField.value = currentName;
     inputField.className = "edit-input";
+
     listTitle.textContent = "";
     listTitle.appendChild(inputField);
     inputField.focus();
@@ -99,7 +110,6 @@ function startEditingListTitle() {
     inputField.addEventListener("keypress", e => { if (e.key === "Enter") inputField.blur(); });
     inputField.addEventListener("keydown", e => { if (e.key === "Escape") listTitle.textContent = currentList; });
 }
-listTitle.addEventListener("dblclick", startEditingListTitle);
 
 /* -------------------------------
    SPEICHERN
@@ -122,6 +132,14 @@ function updateCounter() {
 /* -------------------------------
    TODOS BEARBEITEN
 --------------------------------- */
+let lastTapTodo = 0;
+function handleTouchEdit(span, index) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTodo;
+    if (tapLength < 300 && tapLength > 0) startEditing(span, index);
+    lastTapTodo = currentTime;
+}
+
 function startEditing(spanElement, index) {
     if (todos[index].erledigt) return;
     const currentText = todos[index].text;
@@ -143,19 +161,6 @@ function startEditing(spanElement, index) {
     inputField.addEventListener("blur", saveEdit);
     inputField.addEventListener("keypress", e => { if (e.key === "Enter") inputField.blur(); });
     inputField.addEventListener("keydown", e => { if (e.key === "Escape") render(); });
-}
-
-/* -------------------------------
-   TOUCH DOPPEL-TAP FIX
---------------------------------- */
-let lastTap = 0;
-function handleTouchEdit(span, index) {
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - lastTap;
-    if (tapLength < 300 && tapLength > 0) { // Doppel-Tap erkannt
-        startEditing(span, index);
-    }
-    lastTap = currentTime;
 }
 
 /* -------------------------------
@@ -196,7 +201,6 @@ function render() {
         const span = document.createElement("span");
         span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
-
         span.addEventListener("dblclick", e => { e.stopPropagation(); startEditing(span, index); });
         span.addEventListener("touchend", e => { e.stopPropagation(); handleTouchEdit(span, index); });
 
