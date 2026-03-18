@@ -69,7 +69,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   BUTTONS (Allgemein)
+   BUTTONS (Allgemein) - Wird per JS dynamisch gefärbt
 -------------------------------------------- */
 button {
     padding: 10px 14px;
@@ -400,7 +400,7 @@ footer {
 }
 
 /* -------------------------------------------
-   🔥 MODAL FÜR NEUE LISTE
+   🔥 MODAL FÜR NEUE LISTE (OBEN!)
 -------------------------------------------- */
 .modal {
     display: none;
@@ -411,9 +411,10 @@ footer {
     height: 100%;
     background: rgba(0, 0, 0, 0.8);
     justify-content: center;
-    align-items: flex-end;
+    align-items: flex-start; /* 🔥 OBEN statt unten */
     z-index: 1000;
     animation: modalFadeIn 0.3s ease;
+    padding-top: 60px; /* Abstand von oben */
 }
 
 @keyframes modalFadeIn {
@@ -424,20 +425,21 @@ footer {
 .modal-content {
     background: #1c1c1e;
     padding: 20px;
-    border-radius: 20px 20px 0 0;
-    width: 100%;
+    border-radius: 20px;
+    width: 90%;
     max-width: 600px;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    animation: modalSlideUp 0.3s ease;
-    max-height: 90vh;
+    animation: modalSlideDown 0.3s ease; /* 🔥 Slide von oben */
+    max-height: 85vh;
     overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 
-@keyframes modalSlideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+@keyframes modalSlideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 .modal-header {
@@ -452,13 +454,13 @@ footer {
     font-weight: 700;
 }
 
-.modal-close,
-.modal-save {
+/* 🔥 X-KNOPF ROT */
+.modal-close {
     width: 36px;
     height: 36px;
     border-radius: 50%;
     border: none;
-    background: #3a3a3c;
+    background: #ff3b30; /* 🔥 ROT */
     color: white;
     font-size: 18px;
     cursor: pointer;
@@ -466,15 +468,34 @@ footer {
     align-items: center;
     justify-content: center;
     transition: transform 0.1s;
+    box-shadow: 0 4px 0 #cc2f26;
 }
 
-.modal-close:active,
+.modal-close:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 0 #cc2f26;
+}
+
+/* ✓-Knopf blau */
+.modal-save {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: #0a84ff;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    box-shadow: 0 4px 0 #0060df;
+}
+
 .modal-save:active {
     transform: scale(0.95);
-}
-
-.modal-save {
-    background: #0a84ff;
+    box-shadow: 0 2px 0 #0060df;
 }
 
 /* Color Preview Circle */
@@ -652,8 +673,12 @@ footer {
         height: 34px;
     }
 
+    .modal {
+        padding-top: 40px;
+    }
+
     .modal-content {
-        border-radius: 16px 16px 0 0;
+        border-radius: 16px;
         padding: 16px;
     }
 
