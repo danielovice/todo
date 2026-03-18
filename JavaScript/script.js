@@ -112,7 +112,12 @@ function startEditingListTitle() {
     inputField.addEventListener("keydown", e => { if (e.key === "Escape") listTitle.textContent = currentList; });
 }
 
+// 🔥 FIX: iPhone Support
 listTitle.addEventListener("dblclick", startEditingListTitle);
+listTitle.addEventListener("touchend", (e) => {
+    e.stopPropagation();
+    startEditingListTitle();
+});
 
 /* -------------------------------
    SPEICHERN
@@ -186,7 +191,6 @@ function render() {
         dragHandle.draggable = true;
         dragHandle.textContent = "⋮⋮";
         
-        // 🔥 Touch-Events NUR für Drag-Handle
         dragHandle.addEventListener("touchstart", handleTouchStart, { passive: false });
         dragHandle.addEventListener("touchmove", handleTouchMove, { passive: false });
         dragHandle.addEventListener("touchend", handleTouchEnd, { passive: false });
@@ -203,9 +207,16 @@ function render() {
         const span = document.createElement("span");
         span.textContent = todo.text;
         if (todo.erledigt) span.classList.add("erledigt");
+
+        // 🔥 FIX: EDIT funktioniert auf Handy + PC
         span.addEventListener("dblclick", (e) => {
             e.stopPropagation();
             startEditing(span, index);
+        });
+
+        span.addEventListener("touchend", (e) => {
+            e.stopPropagation();
+            if (!hasMoved) startEditing(span, index);
         });
 
         const delBtn = document.createElement("button");
@@ -235,14 +246,7 @@ function addTodo() {
     todos.push({ text: text, erledigt: false });
     input.value = "";
     input.blur();
-    
-    setTimeout(() => {
-        if (document.activeElement === input) {
-            input.blur();
-        }
-        window.scrollTo(window.scrollX, window.scrollY);
-    }, 100);
-   
+
     saveLists();
     render();
 }
@@ -261,6 +265,11 @@ list.addEventListener("click", e => {
     const idx = Number(index);
 
     if (action === "toggle" && todos[idx]) {
+
+        const checkbox = e.target;
+        checkbox.classList.add("animate");
+        setTimeout(() => checkbox.classList.remove("animate"), 200);
+
         todos[idx].erledigt = !todos[idx].erledigt;
         saveLists();
         render();
@@ -292,7 +301,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP (Mouse - Desktop)
+   DRAG & DROP (Desktop)
 --------------------------------- */
 let draggedItemIndex = null;
 
@@ -303,8 +312,6 @@ list.addEventListener("dragstart", e => {
     if (!li) return;
     draggedItemIndex = Number(li.dataset.index);
     li.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", draggedItemIndex);
 });
 
 list.addEventListener("dragend", e => {
@@ -350,7 +357,7 @@ function getDragAfterElement(container, y) {
 }
 
 /* -------------------------------
-   TOUCH DRAG (NUR auf drag-handle)
+   TOUCH DRAG (FIXED)
 --------------------------------- */
 let touchItem = null;
 let touchStartY = 0;
@@ -360,74 +367,59 @@ let hasMoved = false;
 function handleTouchStart(e) {
     const handle = e.target.closest(".drag-handle");
     if (!handle) return;
-    
+
     const li = handle.closest("li");
     if (!li) return;
-    
+
     touchItem = li;
     touchStartY = e.touches[0].clientY;
     touchStartX = e.touches[0].clientX;
     hasMoved = false;
-    
-    // 🔥 WICHTIG: Nur preventDefault wenn wir wirklich draggen
-    // Nicht blockieren für normale Klicks
 }
 
 function handleTouchMove(e) {
     if (!touchItem) return;
-    
+
     const touch = e.touches[0];
     const moveY = Math.abs(touch.clientY - touchStartY);
     const moveX = Math.abs(touch.clientX - touchStartX);
-    
-    if (!hasMoved) {
-        if (moveY > 10 && moveY > moveX) {
-            hasMoved = true;
-            touchItem.classList.add("dragging");
-        } else if (moveX > 20) {
-            touchItem = null;
-            hasMoved = false;
-            return;
-        }
+
+    if (!hasMoved && moveY > 10 && moveY > moveX) {
+        hasMoved = true;
+        touchItem.classList.add("dragging");
     }
-    
+
     if (!hasMoved) return;
-    
-    // 🔥 Nur preventDefault wenn wir wirklich draggen
+
     e.preventDefault();
-    
+
     const after = getDragAfterElement(list, touch.clientY);
-    
-    if (after == null) {
-        list.appendChild(touchItem);
-    } else {
-        list.insertBefore(touchItem, after);
-    }
+
+    if (after == null) list.appendChild(touchItem);
+    else list.insertBefore(touchItem, after);
 }
 
-function handleTouchEnd(e) {
+function handleTouchEnd() {
     if (!touchItem) return;
-    
+
     touchItem.classList.remove("dragging");
-    
+
     if (hasMoved) {
         const items = Array.from(list.children);
         const newTodos = [];
-        
+
         items.forEach(li => {
             const idx = Number(li.dataset.index);
-            if (todos[idx] !== undefined) {
-                newTodos.push(todos[idx]);
-            }
+            if (todos[idx] !== undefined) newTodos.push(todos[idx]);
         });
-        
+
         if (newTodos.length === todos.length) {
             todos = newTodos;
             saveLists();
             render();
         }
     }
-    
+
     touchItem = null;
     hasMoved = false;
 }
@@ -444,38 +436,27 @@ function renderTabs() {
         const btn = document.createElement("button");
         btn.textContent = name;
 
-        btn.onmouseover = () => { menuDropdown.style.display = "flex"; };
-        btn.onmouseleave = () => { menuDropdown.style.display = "none"; };
-
         btn.onclick = () => {
             saveLists();
             currentList = name;
             todos = lists[name];
             listTitle.textContent = name;
-            menuDropdown.style.display = "none";
             renderTabs();
             render();
         };
 
         const del = document.createElement("button");
-        del.textContent = "🗑";
+        del.textContent = "X";
 
         del.onclick = (e) => {
             e.stopPropagation();
             if (!confirm("Liste \"" + name + "\" löschen?")) return;
             delete lists[name];
-            if (name === currentList) {
-                const remaining = Object.keys(lists);
-                if (remaining.length > 0) {
-                    currentList = remaining[0];
-                } else {
-                    currentList = "Meine Liste";
-                    lists[currentList] = [];
-                }
-                todos = lists[currentList];
-                listTitle.textContent = currentList;
-                saveLists();
-            }
+            currentList = Object.keys(lists)[0] || "Meine Liste";
+            if (!lists[currentList]) lists[currentList] = [];
+            todos = lists[currentList];
+            listTitle.textContent = currentList;
+            saveLists();
             renderTabs();
             render();
         };
@@ -487,22 +468,23 @@ function renderTabs() {
 }
 
 /* -------------------------------
-   NEUE LISTE HINZUFÜGEN
+   NEUE LISTE
 --------------------------------- */
 addListBtn.addEventListener("click", () => {
     const name = prompt("Name der neuen Liste:");
     if (!name || !name.trim()) return;
-    const trimmedName = name.trim();
-    
-    if (lists[trimmedName]) {
-        alert("Eine Liste mit diesem Namen gibt es bereits!");
+
+    const trimmed = name.trim();
+    if (lists[trimmed]) {
+        alert("Existiert bereits!");
         return;
     }
-    
-    lists[trimmedName] = [];
-    currentList = trimmedName;
-    todos = lists[trimmedName];
-    listTitle.textContent = trimmedName;
+
+    lists[trimmed] = [];
+    currentList = trimmed;
+    todos = lists[trimmed];
+    listTitle.textContent = trimmed;
+
     saveLists();
     renderTabs();
     render();
@@ -513,7 +495,7 @@ addListBtn.addEventListener("click", () => {
 --------------------------------- */
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("service-worker.js")
-        .catch(err => console.log("SW Registration failed:", err));
+        .catch(err => console.log("SW Fehler:", err));
 }
 
 /* -------------------------------
