@@ -38,7 +38,7 @@ try {
     lists = { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
 }
 
-// Alte Struktur migrieren (wenn todos direkt im Array waren)
+// Alte Struktur migrieren
 for (const key in lists) {
     if (!lists[key].todos && Array.isArray(lists[key])) {
         lists[key] = { todos: lists[key], type: "todo", color: "#0a84ff" };
@@ -53,8 +53,35 @@ if (savedCurrentList && lists[savedCurrentList]) {
 
 listTitle.textContent = currentList;
 if (lists[currentList]) {
-    listTitle.style.color = lists[currentList].color || "#0a84ff";
+    const listColor = lists[currentList].color || "#0a84ff";
+    updateButtonColors(listColor);
     let todos = lists[currentList].todos || [];
+}
+
+/* -------------------------------
+   BUTTON FARBEN AKTUALISIEREN
+--------------------------------- */
+function updateButtonColors(color) {
+    // Hinzufügen Button
+    addBtn.style.background = color;
+    addBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+    
+    // Filter Buttons (wenn nicht aktiv)
+    filterBtns.forEach(btn => {
+        if (!btn.classList.contains('active')) {
+            btn.style.background = color;
+            btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
+        }
+    });
+}
+
+// Farbe abdunkeln für Shadow
+function adjustColor(color, amount) {
+    const num = parseInt(color.replace("#",""), 16);
+    const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+    const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+    const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+    return `#${(0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 /* -------------------------------
@@ -452,24 +479,35 @@ function handleTouchEnd() {
 }
 
 /* -------------------------------
-   LISTEN MENÜ RENDER
+   LISTEN MENÜ RENDER (MIT FARBEN!)
 --------------------------------- */
 function renderTabs() {
     listTabs.innerHTML = "";
     for (const name in lists) {
         const wrapper = document.createElement("div");
         wrapper.className = "list-item";
+        
         const btn = document.createElement("button");
         btn.textContent = name;
+        
+        // 🔥 Farbe der Liste übernehmen
+        const listColor = lists[name].color || "#0a84ff";
+        btn.style.background = listColor;
+        btn.style.boxShadow = `0 2px 0 ${adjustColor(listColor, -20)}`;
+        
         btn.onclick = () => {
             saveLists();
             currentList = name;
             todos = lists[name].todos || [];
             listTitle.textContent = name;
-            listTitle.style.color = lists[name].color || "#0a84ff";
+            
+            // 🔥 Buttons mit Listenfarbe aktualisieren
+            updateButtonColors(listColor);
+            
             renderTabs();
             render();
         };
+        
         const del = document.createElement("button");
         del.textContent = "X";
         del.onclick = e => {
@@ -480,11 +518,16 @@ function renderTabs() {
             if (!lists[currentList]) lists[currentList] = { todos: [], type: "todo", color: "#0a84ff" };
             todos = lists[currentList].todos || [];
             listTitle.textContent = currentList;
-            listTitle.style.color = lists[currentList].color || "#0a84ff";
+            
+            // Farbe der neuen aktuellen Liste
+            const newColor = lists[currentList].color || "#0a84ff";
+            updateButtonColors(newColor);
+            
             saveLists();
             renderTabs();
             render();
         };
+        
         wrapper.appendChild(btn);
         wrapper.appendChild(del);
         listTabs.appendChild(wrapper);
@@ -529,11 +572,15 @@ confirmAddListBtn.addEventListener("click", () => {
         return;
     }
     const type = listTypeSelect.value;
+    
     lists[name] = { todos: [], type: type, color: selectedColor };
     currentList = name;
     todos = lists[name].todos;
     listTitle.textContent = name;
-    listTitle.style.color = selectedColor;
+    
+    // 🔥 Buttons mit neuer Farbe aktualisieren
+    updateButtonColors(selectedColor);
+    
     saveLists();
     renderTabs();
     render();
