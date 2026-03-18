@@ -296,7 +296,7 @@ li input[type="checkbox"] {
 }
 
 /* 🔥 KEIN Hover-Effekt */
-li input[type="checkbox"]:checked {
+li input[type="checkbox"]:animate {
     background: #0a84ff;
     border-color: #0a84ff;
     animation: popCheck 0.2s ease;
