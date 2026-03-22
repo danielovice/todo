@@ -17,10 +17,10 @@ html, body {
     min-height: 100vh;
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
 }
 
 body {
-    overscroll-behavior-y: contain;
     touch-action: pan-y;
 }
 
@@ -28,8 +28,10 @@ body.no-scroll {
     overflow: hidden;
     position: fixed;
     width: 100%;
+    height: 100%;
 }
 
+/* Textauswahl nur bei Inputs */
 input, textarea, [contenteditable], .edit-input {
     -webkit-user-select: text;
     -khtml-user-select: text;
@@ -82,11 +84,12 @@ button {
     transition: transform 0.1s ease, box-shadow 0.1s ease;
     -webkit-user-select: none;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 button:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #0060df;
+    transform: translateY(2px) !important;
+    box-shadow: 0 2px 0 #0060df !important;
 }
 
 /* -------------------------------------------
@@ -110,6 +113,8 @@ button:active {
     min-width: 200px;
     z-index: 100;
     box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    max-height: 60vh;
+    overflow-y: auto;
 }
 
 .menu:hover #menuDropdown {
@@ -134,6 +139,7 @@ button:active {
     border-radius: 10px;
     box-shadow: 0 2px 0 #0055cc;
     transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .list-item button:first-child:active {
@@ -141,7 +147,6 @@ button:active {
     box-shadow: none;
 }
 
-/* 🔥 Drag-Feedback für Listen im Menü */
 .list-item button:first-child.dragging {
     opacity: 0.95;
     transform: scale(1.04);
@@ -226,16 +231,17 @@ input[type="text"]::placeholder {
     box-shadow: 0 3px 0 #0060df;
     border-radius: 10px;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.filter-btn.active {
-    background: #30d158;
-    box-shadow: 0 3px 0 #1f9e3a;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .filter-btn:active {
     transform: translateY(2px);
     box-shadow: 0 1px 0 #0060df;
+}
+
+.filter-btn.active {
+    background: #30d158 !important;
+    box-shadow: 0 3px 0 #1f9e3a !important;
 }
 
 /* -------------------------------------------
@@ -269,6 +275,7 @@ li {
     gap: 8px;
     transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
     touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
 }
 
 li.dragging {
@@ -497,7 +504,6 @@ footer {
     box-shadow: 0 2px 0 #0060df;
 }
 
-/* 🔥 Icon ZENTRIEREN */
 .color-preview {
     display: flex;
     justify-content: center;
@@ -623,4 +629,15 @@ footer {
     .modal { padding-top: 40px; }
     .modal-content { border-radius: 16px; padding: 16px; }
     .color-circle { width: 36px; height: 36px; }
+    
+    /* 🔥 Button Effects auf Mobile */
+    button:active {
+        transform: translateY(2px) !important;
+        box-shadow: 0 2px 0 #0060df !important;
+    }
+    
+    .filter-btn:active {
+        transform: translateY(2px) !important;
+        box-shadow: 0 1px 0 #0060df !important;
+    }
 }
