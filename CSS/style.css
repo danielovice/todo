@@ -403,13 +403,11 @@ li span, li input.edit-input {
     display: inline-block;
 }
 
-/* Zahlen + Einheiten in blau */
 li span .quantity {
     color: #0a84ff;
     font-weight: 600;
 }
 
-/* Durchgestrichen wenn erledigt (AUCH blaue Zahlen!) */
 li span.erledigt,
 li span.erledigt .quantity {
     text-decoration: line-through !important;
