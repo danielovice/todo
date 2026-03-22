@@ -224,7 +224,7 @@ input[type="text"]::placeholder {
     color: #666;
 }
 
-/* 🔥 Autocomplete Liste */
+/* Autocomplete Liste */
 .autocomplete-list {
     position: absolute;
     top: 100%;
@@ -395,10 +395,17 @@ li span, li input.edit-input {
     display: inline-block;
 }
 
-/* 🔥 Zahlen in blau für Einkaufsliste */
-li span .number {
+/* 🔥 Zahlen + Einheiten in blau */
+li span .quantity {
     color: #0a84ff;
     font-weight: 600;
+}
+
+/* 🔥 Durchgestrichen wenn erledigt (auch blaue Zahlen) */
+li span.erledigt,
+li span.erledigt .quantity {
+    text-decoration: line-through;
+    -webkit-text-decoration: line-through;
 }
 
 #listTitle input.edit-input {
@@ -480,10 +487,9 @@ footer {
     height: 100%;
     background: rgba(0, 0, 0, 0.8);
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
     z-index: 1000;
     animation: modalFadeIn 0.3s ease;
-    padding-top: 60px;
 }
 
 @keyframes modalFadeIn {
