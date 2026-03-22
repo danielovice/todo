@@ -24,7 +24,6 @@ body {
     touch-action: pan-y;
 }
 
-/* Textauswahl nur bei Inputs */
 input, textarea, [contenteditable], .edit-input {
     -webkit-user-select: text;
     -khtml-user-select: text;
@@ -170,7 +169,6 @@ button.press-effect {
     touch-action: pan-y;
 }
 
-/* Scrollbar Styling */
 .app::-webkit-scrollbar {
     width: 6px;
 }
@@ -241,26 +239,17 @@ input[type="text"]::placeholder {
     color: white;
     box-shadow: 0 3px 0 #0060df;
     border-radius: 10px;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
+    border: 2px solid transparent;
 }
 
-/* 🔥 Aktiver Filter: Weißer Rand + Checkmark */
+/* 🔥 Aktiver Filter: Gleiche Farbe + Weißer Rand + Größer */
 .filter-btn.active {
-    background: #30d158 !important;
-    box-shadow: 0 3px 0 #1f9e3a !important;
-    border: 2px solid white;
-}
-
-.filter-btn.active::after {
-    content: '✓';
-    position: absolute;
-    top: 2px;
-    right: 4px;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
+    border: 2px solid white !important;
+    transform: scale(1.08);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
 }
 
 .filter-btn:active {
