@@ -22,12 +22,20 @@ const confirmAddListBtn = document.getElementById("confirmAddListBtn");
 const closeModalBtn = document.getElementById("closeModalBtn");
 const colorPreview = document.getElementById("colorPreview");
 
+// AI Settings Modal
+const aiSettingsModal = document.getElementById("aiSettingsModal");
+const aiApiKeyInput = document.getElementById("aiApiKey");
+const closeAiSettingsBtn = document.getElementById("closeAiSettingsBtn");
+const saveAiSettingsBtn = document.getElementById("saveAiSettingsBtn");
+const testAiBtn = document.getElementById("testAiBtn");
+
 let lists = {};
 let listOrder = [];
 let currentList = "Meine Liste";
 let filter = null;
 let selectedColor = "#0a84ff";
 let todos = [];
+let aiApiKey = localStorage.getItem("aiApiKey") || "";
 
 /* -------------------------------
    LOCAL STORAGE LADEN
@@ -251,7 +259,8 @@ const categoryKeywords = {
         'kotelett', 'braten', 'geschnetzeltes', 'gyros', 'döner', 'fisch', 'lachs',
         'thunfisch', 'forelle', 'kabeljau', 'seelachs', 'garnelen', 'shrimps',
         'meeresfrüchte', 'wurstfleisch', 'hackfleisch', 'faschiertes', 'leber',
-        'speck', 'schinken'
+        'speck', 'schinken', 'bauch', 'ripperl', 'rippchen', 'schweinsbraten',
+        'tascherl', 'beuschel', 'schlögel', 'nuss', 'bug', 'wammerl'
     ],
     'Wurst': [
         'wurst', 'salami', 'extrawurst', 'fleischwurst', 'käsekrainer', 'debreziner',
@@ -303,18 +312,68 @@ const categoryKeywords = {
     ]
 };
 
+/* -------------------------------
+   🔥 AI KATEGORISIERUNG (OpenAI)
+--------------------------------- */
+async function categorizeWithAI(itemText) {
+    if (!aiApiKey) return null;
+    
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${aiApiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: [{
+                    role: 'system',
+                    content: 'Du bist ein Einkaufslisten-Assistent. Kategorisiere den folgenden Artikel in EINE dieser Kategorien: Milchprodukte, Obst, Gemüse, Fleisch, Wurst, Brot, Getränke, Snacks, Süßigkeiten, Haushalt, Sonstiges. Antworte NUR mit dem Kategoriennamen, nichts anderes. Verstehe auch Mundart und Dialekte.'
+                }, {
+                    role: 'user',
+                    content: itemText
+                }],
+                max_tokens: 20,
+                temperature: 0.3
+            })
+        });
+        
+        if (!response.ok) throw new Error('AI API Error');
+        
+        const data = await response.json();
+        const category = data.choices[0].message.content.trim();
+        
+        // Validieren ob Kategorie existiert
+        const validCategories = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten', 'Haushalt', 'Sonstiges'];
+        if (validCategories.includes(category)) {
+            return category;
+        }
+        return null;
+    } catch (e) {
+        console.log('AI Kategorisierung fehlgeschlagen:', e);
+        return null;
+    }
+}
+
 function getCategoryForItem(itemText) {
     const originalText = itemText.trim();
     const lowerText = originalText.toLowerCase();
     
-    // 1. Exakte Übereinstimmung
+    // 1. 🔥 Erst AI versuchen (wenn API Key vorhanden)
+    if (aiApiKey) {
+        const aiCategory = categorizeWithAI(originalText);
+        if (aiCategory) return aiCategory;
+    }
+    
+    // 2. Exakte Übereinstimmung
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
         if (keywords.includes(lowerText)) {
             return category;
         }
     }
     
-    // 2. Compound-Wörter Pattern
+    // 3. Compound-Wörter Pattern
     const germanCompoundPatterns = [
         { pattern: /(milch)(.*)(brot|semmel|weckerl|brötchen)/i, category: 'Brot' },
         { pattern: /(vollkorn)(.*)(brot|semmel|weckerl)/i, category: 'Brot' },
@@ -342,7 +401,9 @@ function getCategoryForItem(itemText) {
         { pattern: /(huhn)(.*)(suppe|brühe)/i, category: 'Fleisch' },
         { pattern: /(fisch)(.*)(stäbchen|filet)/i, category: 'Fleisch' },
         { pattern: /(kartoffel)(.*)(stock|püree|salat)/i, category: 'Gemüse' },
-        { pattern: /(erdapfel)(.*)(stock|püree)/i, category: 'Gemüse' }
+        { pattern: /(erdapfel)(.*)(stock|püree)/i, category: 'Gemüse' },
+        { pattern: /(schwein)(.*)(bauch|ripperl)/i, category: 'Fleisch' },
+        { pattern: /(schweins)(.*)(braten)/i, category: 'Fleisch' }
     ];
     
     for (const { pattern, category } of germanCompoundPatterns) {
@@ -351,7 +412,7 @@ function getCategoryForItem(itemText) {
         }
     }
     
-    // 3. Endungen prüfen
+    // 4. Endungen prüfen
     const endKeywords = {
         'brot': 'Brot', 'semmel': 'Brot', 'weckerl': 'Brot', 'brötchen': 'Brot',
         'milch': 'Milchprodukte', 'käse': 'Milchprodukte', 'joghurt': 'Milchprodukte',
@@ -370,7 +431,7 @@ function getCategoryForItem(itemText) {
         }
     }
     
-    // 4. Teilübereinstimmung
+    // 5. Teilübereinstimmung
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
         for (const keyword of keywords) {
             if (lowerText.includes(keyword)) {
@@ -407,7 +468,6 @@ function showAutocomplete(value) {
         return;
     }
     
-    // 🔥 Alle bisherigen Items aus allen Einkaufslisten sammeln
     const allShoppingItems = new Set();
     for (const listName in lists) {
         if (lists[listName].type === 'shopping') {
@@ -417,7 +477,6 @@ function showAutocomplete(value) {
         }
     }
     
-    // 🔥 Vorschläge filtern
     const suggestions = Array.from(allShoppingItems).filter(item => 
         item.toLowerCase().includes(value.toLowerCase()) && 
         item.toLowerCase() !== value.toLowerCase()
@@ -429,13 +488,11 @@ function showAutocomplete(value) {
         return;
     }
     
-    // 🔥 Vorschläge anzeigen
     autocompleteList.innerHTML = '';
     suggestions.forEach(suggestion => {
         const div = document.createElement('div');
         div.className = 'autocomplete-item';
         
-        // 🔥 Match hervorheben
         const regex = new RegExp(`(${value})`, 'gi');
         const highlighted = suggestion.replace(regex, '<span class="match">$1</span>');
         div.innerHTML = highlighted;
@@ -453,7 +510,6 @@ function showAutocomplete(value) {
     autocompleteList.classList.add('show');
 }
 
-// Autocomplete Events
 input.addEventListener('input', (e) => {
     showAutocomplete(e.target.value);
 });
@@ -473,17 +529,17 @@ document.addEventListener('click', (e) => {
 });
 
 /* -------------------------------
-   🔥 ZAHLEN IN BLAU MARKIEREN
+   🔥 ZAHLEN + EINHEITEN IN BLAU
 --------------------------------- */
 function highlightNumbers(text) {
-    // 🔥 Zahlen am Anfang erkennen (z.B. "2 Eier", "500g Milch")
-    const numberPattern = /^(\d+\.?\d*\s*(g|kg|ml|l|st|stk)?\s*)/i;
+    // 🔥 Zahlen + Einheiten erkennen (2 Eier, 500g Milch, 1.5kg, 250ml, 3st, 10dag, etc.)
+    const numberPattern = /^(\d+\.?\d*\s*(g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?\s*)/i;
     const match = text.match(numberPattern);
     
     if (match) {
         const number = match[1];
         const rest = text.slice(number.length);
-        return `<span class="number">${number}</span>${rest}`;
+        return `<span class="quantity">${number}</span>${rest}`;
     }
     
     return text;
@@ -552,7 +608,7 @@ function createTodoElement(todo, index, isShoppingList = false) {
     leftDiv.appendChild(checkbox);
 
     const span = document.createElement("span");
-    // 🔥 Zahlen in blau für Einkaufsliste
+    // 🔥 Zahlen + Einheiten in blau für Einkaufsliste
     span.innerHTML = isShoppingList ? highlightNumbers(todo.text) : todo.text;
     if (todo.erledigt) span.classList.add("erledigt");
     span.addEventListener("dblclick", e => { e.stopPropagation(); startEditing(span, index); });
@@ -956,6 +1012,42 @@ addListModal.addEventListener("click", (e) => {
 });
 
 /* -------------------------------
+   🔥 AI SETTINGS
+--------------------------------- */
+// AI Settings Button im Menü hinzufügen (optional)
+function createAiSettingsButton() {
+    const aiBtn = document.createElement("button");
+    aiBtn.textContent = "🤖 AI";
+    aiBtn.style.cssText = "position: fixed; bottom: 80px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: #5856d6; box-shadow: 0 4px 0 #3d3b9e; z-index: 99; font-size: 20px; padding: 0;";
+    aiBtn.onclick = () => {
+        aiApiKeyInput.value = aiApiKey;
+        aiSettingsModal.style.display = "flex";
+    };
+    document.body.appendChild(aiBtn);
+}
+
+closeAiSettingsBtn.addEventListener("click", () => {
+    aiSettingsModal.style.display = "none";
+});
+
+saveAiSettingsBtn.addEventListener("click", () => {
+    aiApiKey = aiApiKeyInput.value.trim();
+    localStorage.setItem("aiApiKey", aiApiKey);
+    aiSettingsModal.style.display = "none";
+    alert("AI Einstellungen gespeichert!");
+});
+
+testAiBtn.addEventListener("click", async () => {
+    const testItem = "Bauch";
+    const category = await categorizeWithAI(testItem);
+    if (category) {
+        alert(`✅ AI funktioniert!\n"${testItem}" → ${category}`);
+    } else {
+        alert("❌ AI Test fehlgeschlagen. API Key prüfen.");
+    }
+});
+
+/* -------------------------------
    SERVICE WORKER
 --------------------------------- */
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js").catch(err => console.log("SW Fehler:", err));
@@ -963,5 +1055,6 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-work
 /* -------------------------------
    START
 --------------------------------- */
+createAiSettingsButton();
 renderTabs();
 render();
