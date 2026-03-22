@@ -24,7 +24,7 @@ const colorPreview = document.getElementById("colorPreview");
 let lists = {};
 let listOrder = [];
 let currentList = "Meine Liste";
-let filter = "alle";
+let filter = null; // null = Alle anzeigen
 let selectedColor = "#0a84ff";
 let todos = [];
 
@@ -102,21 +102,6 @@ function adjustColor(color, amount) {
     const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
     return `#${(0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
-
-/* -------------------------------
-   SCROLL VERHALTEN
---------------------------------- */
-function checkScroll() {
-    const body = document.body;
-    const html = document.documentElement;
-    const pageHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight);
-    const viewportHeight = window.innerHeight;
-    if (pageHeight <= viewportHeight) body.classList.add("no-scroll");
-    else body.classList.remove("no-scroll");
-}
-
-window.addEventListener("load", checkScroll);
-window.addEventListener("resize", checkScroll);
 
 /* -------------------------------
    MENÜ
@@ -320,7 +305,6 @@ function render() {
     }
 
     updateCounter();
-    checkScroll();
     updateFilterButtons();
 }
 
@@ -397,6 +381,27 @@ addBtn.addEventListener("click", addTodo);
 input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
 
 /* -------------------------------
+   BUTTON PRESS EFFECT (Mobile Fix)
+--------------------------------- */
+document.addEventListener("touchstart", function(e) {
+    if (e.target.tagName === "BUTTON") {
+        e.target.classList.add("press-effect");
+    }
+}, { passive: true });
+
+document.addEventListener("touchend", function(e) {
+    if (e.target.tagName === "BUTTON") {
+        e.target.classList.remove("press-effect");
+    }
+}, { passive: true });
+
+document.addEventListener("touchcancel", function(e) {
+    if (e.target.tagName === "BUTTON") {
+        e.target.classList.remove("press-effect");
+    }
+}, { passive: true });
+
+/* -------------------------------
    EVENT DELEGATION
 --------------------------------- */
 list.addEventListener("click", e => {
@@ -417,12 +422,19 @@ list.addEventListener("click", e => {
 });
 
 /* -------------------------------
-   FILTER
+   FILTER (Ohne "Alle")
 --------------------------------- */
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
         const value = btn.dataset.filter;
-        filter = value;
+        if (filter === value) {
+            filter = null; // Zurück zu "Alle"
+            btn.classList.remove("active");
+        } else {
+            filter = value;
+            filterBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+        }
         saveLists();
         render();
     });
@@ -549,14 +561,12 @@ function renderTabs() {
             render();
         };
         
-        // 🔥 Lange drücken = Drag starten (500ms)
         btn.addEventListener("touchstart", (e) => {
             listLongPressTimer = setTimeout(() => {
                 listDragItem = btn;
                 listTouchStartY = e.touches[0].clientY;
                 listHasMoved = false;
                 btn.classList.add("dragging");
-                // 🔥 Scrollen verhindern während Drag
                 document.body.style.overflow = 'hidden';
                 document.body.style.touchAction = 'none';
             }, 500);
@@ -568,11 +578,10 @@ function renderTabs() {
             const moveY = Math.abs(touch.clientY - listTouchStartY);
             if (moveY > 10) {
                 listHasMoved = true;
-                e.preventDefault(); // 🔥 Scrollen verhindern
+                e.preventDefault();
                 e.stopPropagation();
                 
                 const items = Array.from(listTabs.querySelectorAll(".list-item"));
-                const currentRect = listDragItem.closest(".list-item").getBoundingClientRect();
                 const touchY = touch.clientY;
                 
                 for (let item of items) {
@@ -598,7 +607,6 @@ function renderTabs() {
         
         btn.addEventListener("touchend", () => {
             clearTimeout(listLongPressTimer);
-            // 🔥 Scrollen wieder erlauben
             document.body.style.overflow = '';
             document.body.style.touchAction = 'pan-y';
             
@@ -616,7 +624,6 @@ function renderTabs() {
             }
         });
         
-        // 🔥 Touch cancel auch behandeln
         btn.addEventListener("touchcancel", () => {
             clearTimeout(listLongPressTimer);
             document.body.style.overflow = '';
