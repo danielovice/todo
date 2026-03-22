@@ -395,13 +395,13 @@ li span, li input.edit-input {
     display: inline-block;
 }
 
-/* 🔥 Zahlen + Einheiten in blau */
+/* Zahlen + Einheiten in blau */
 li span .quantity {
     color: #0a84ff;
     font-weight: 600;
 }
 
-/* 🔥 Durchgestrichen wenn erledigt (auch blaue Zahlen) */
+/* Durchgestrichen wenn erledigt (auch blaue Zahlen) */
 li span.erledigt,
 li span.erledigt .quantity {
     text-decoration: line-through;
@@ -663,7 +663,7 @@ footer {
     text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
-/* Kategorien */
+/* Kategorien - Nur 3 Hauptkategorien */
 .category-header {
     background: #2c2c2e;
     padding: 10px 16px;
