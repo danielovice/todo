@@ -54,14 +54,14 @@ let todos = [];
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
-        authModal.style.display = "none";
-        mainApp.style.display = "flex";
+        if (authModal) authModal.style.display = "none";
+        if (mainApp) mainApp.style.display = "flex";
         initApp();
         await loadData();
     } else {
         currentUser = null;
-        authModal.style.display = "flex";
-        mainApp.style.display = "none";
+        if (authModal) authModal.style.display = "flex";
+        if (mainApp) mainApp.style.display = "none";
     }
 });
 
@@ -138,11 +138,13 @@ authSubmitBtn.addEventListener("click", async () => {
 });
 
 // Logout
-logoutBtn.addEventListener("click", () => {
-    auth.signOut().then(() => {
-        location.reload();
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+        auth.signOut().then(() => {
+            location.reload();
+        });
     });
-});
+}
 
 // Fehlermeldungen
 function getErrorMessage(code) {
@@ -175,7 +177,7 @@ async function loadData() {
                 updateButtonColors(listColor);
             }
             
-            listTitle.textContent = currentList;
+            if (listTitle) listTitle.textContent = currentList;
             renderTabs();
             render();
         }
@@ -228,6 +230,8 @@ function initApp() {
 }
 
 function setupEventListeners() {
+    if (!menuBtn || !menuDropdown) return;
+    
     // Menü
     menuBtn.addEventListener("click", e => {
         e.stopPropagation();
@@ -239,96 +243,118 @@ function setupEventListeners() {
     });
 
     // Listenname bearbeiten
-    listTitle.addEventListener("dblclick", startEditingListTitle);
+    if (listTitle) {
+        listTitle.addEventListener("dblclick", startEditingListTitle);
+    }
 
     // Todos hinzufügen
-    addBtn.addEventListener("click", addTodo);
-    input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
+    if (addBtn && input) {
+        addBtn.addEventListener("click", addTodo);
+        input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
+    }
 
     // Filter
-    filterBtns.forEach(btn => {
-        btn.addEventListener("click", () => {
-            const value = btn.dataset.filter;
-            if (filter === value) {
-                filter = null;
-                btn.classList.remove("active");
-            } else {
-                filter = value;
-                filterBtns.forEach(b => b.classList.remove("active"));
-                btn.classList.add("active");
-            }
-            saveData();
-            render();
+    if (filterBtns) {
+        filterBtns.forEach(btn => {
+            btn.addEventListener("click", () => {
+                const value = btn.dataset.filter;
+                if (filter === value) {
+                    filter = null;
+                    btn.classList.remove("active");
+                } else {
+                    filter = value;
+                    filterBtns.forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                }
+                saveData();
+                render();
+            });
         });
-    });
+    }
 
     // Modal
-    closeModalBtn.addEventListener("click", () => {
-        addListModal.style.display = "none";
-    });
+    if (closeModalBtn && addListModal) {
+        closeModalBtn.addEventListener("click", () => {
+            addListModal.style.display = "none";
+        });
 
-    addListModal.addEventListener("click", (e) => {
-        if (e.target === addListModal) addListModal.style.display = "none";
-    });
+        addListModal.addEventListener("click", (e) => {
+            if (e.target === addListModal) addListModal.style.display = "none";
+        });
+    }
 
     // Neue Liste
-    addListBtn.addEventListener("click", () => {
-        listNameInput.value = "";
-        listTypeSelect.value = "todo";
-        colorCircles.forEach(c => c.classList.remove("selected"));
-        colorCircles[5].classList.add("selected");
-        selectedColor = "#0a84ff";
-        colorPreview.style.color = selectedColor;
-        addListModal.style.display = "flex";
-    });
+    if (addListBtn) {
+        addListBtn.addEventListener("click", () => {
+            if (!listNameInput || !listTypeSelect) return;
+            listNameInput.value = "";
+            listTypeSelect.value = "todo";
+            if (colorCircles) {
+                colorCircles.forEach(c => c.classList.remove("selected"));
+                if (colorCircles[5]) colorCircles[5].classList.add("selected");
+            }
+            selectedColor = "#0a84ff";
+            if (colorPreview) colorPreview.style.color = selectedColor;
+            if (addListModal) addListModal.style.display = "flex";
+        });
+    }
 
     // Farbe auswählen
-    colorCircles.forEach(circle => {
-        circle.addEventListener("click", () => {
-            colorCircles.forEach(c => c.classList.remove("selected"));
-            circle.classList.add("selected");
-            selectedColor = circle.dataset.color;
-            colorPreview.style.color = selectedColor;
+    if (colorCircles) {
+        colorCircles.forEach(circle => {
+            circle.addEventListener("click", () => {
+                colorCircles.forEach(c => c.classList.remove("selected"));
+                circle.classList.add("selected");
+                selectedColor = circle.dataset.color;
+                if (colorPreview) colorPreview.style.color = selectedColor;
+            });
         });
-    });
+    }
 
     // Liste bestätigen
-    confirmAddListBtn.addEventListener("click", () => {
-        const name = listNameInput.value.trim();
-        if (!name) {
-            alert("Bitte einen Namen eingeben!");
-            return;
-        }
-        if (lists[name]) {
-            alert("Liste existiert bereits!");
-            return;
-        }
-        const type = listTypeSelect.value;
-        
-        lists[name] = { todos: [], type: type, color: selectedColor };
-        listOrder.push(name);
-        currentList = name;
-        todos = lists[name].todos;
-        listTitle.textContent = name;
-        
-        updateButtonColors(selectedColor);
-        saveData();
-        renderTabs();
-        render();
-        addListModal.style.display = "none";
-    });
+    if (confirmAddListBtn) {
+        confirmAddListBtn.addEventListener("click", () => {
+            if (!listNameInput) return;
+            const name = listNameInput.value.trim();
+            if (!name) {
+                alert("Bitte einen Namen eingeben!");
+                return;
+            }
+            if (lists[name]) {
+                alert("Liste existiert bereits!");
+                return;
+            }
+            const type = listTypeSelect ? listTypeSelect.value : "todo";
+            
+            lists[name] = { todos: [], type: type, color: selectedColor };
+            listOrder.push(name);
+            currentList = name;
+            todos = lists[name].todos;
+            if (listTitle) listTitle.textContent = name;
+            
+            updateButtonColors(selectedColor);
+            saveData();
+            renderTabs();
+            render();
+            if (addListModal) addListModal.style.display = "none";
+        });
+    }
 
     // Autocomplete
-    input.addEventListener('input', (e) => {
-        showAutocomplete(e.target.value);
-    });
+    if (input) {
+        input.addEventListener('input', (e) => {
+            showAutocomplete(e.target.value);
+        });
 
-    input.addEventListener('blur', () => {
-        setTimeout(() => {
-            autocompleteList.classList.remove('show');
-            autocompleteList.innerHTML = '';
-        }, 200);
-    });
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (autocompleteList) {
+                    autocompleteList.classList.remove('show');
+                    autocompleteList.innerHTML = '';
+                }
+            }, 200);
+        });
+    }
 }
 
 /* ===================================
@@ -363,18 +389,14 @@ function adjustColor(color, amount) {
     return `#${(0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
-function saveLists() {
-    if (!Array.isArray(todos)) todos = [];
-    lists[currentList].todos = todos;
-    saveData();
-}
-
 function updateCounter() {
+    if (!counter) return;
     const done = todos.filter(t => t.erledigt).length;
     counter.textContent = `${done} von ${todos.length} erledigt`;
 }
 
 function startEditingListTitle() {
+    if (!currentList || !listTitle) return;
     const currentName = currentList;
     const inputField = document.createElement("input");
     inputField.type = "text";
@@ -411,7 +433,7 @@ function startEditingListTitle() {
 }
 
 function startEditing(spanElement, index) {
-    if (todos[index].erledigt) return;
+    if (!todos[index] || todos[index].erledigt) return;
     const currentText = todos[index].text;
     const inputField = document.createElement("input");
     inputField.type = "text";
@@ -434,6 +456,7 @@ function startEditing(spanElement, index) {
 }
 
 function addTodo() {
+    if (!input) return;
     const text = input.value.trim();
     if (!text) return;
     todos.push({ text, erledigt: false });
@@ -607,7 +630,7 @@ function showAutocomplete(value) {
         const regex = new RegExp(`(${value})`, 'gi');
         div.innerHTML = suggestion.replace(regex, '<span class="match">$1</span>');
         div.addEventListener('click', () => {
-            input.value = suggestion;
+            if (input) input.value = suggestion;
             autocompleteList.classList.remove('show');
         });
         autocompleteList.appendChild(div);
@@ -637,7 +660,7 @@ function renderTabs() {
             saveData();
             currentList = name;
             todos = lists[name].todos || [];
-            listTitle.textContent = name;
+            if (listTitle) listTitle.textContent = name;
             updateButtonColors(listColor);
             renderTabs();
             render();
@@ -653,7 +676,7 @@ function renderTabs() {
             currentList = listOrder[0] || "Meine Liste";
             if (!lists[currentList]) lists[currentList] = { todos: [], type: "todo", color: "#0a84ff" };
             todos = lists[currentList].todos || [];
-            listTitle.textContent = currentList;
+            if (listTitle) listTitle.textContent = currentList;
             const newColor = lists[currentList].color || "#0a84ff";
             updateButtonColors(newColor);
             saveData();
@@ -667,34 +690,21 @@ function renderTabs() {
     });
 }
 
-list.addEventListener("click", e => {
-    const action = e.target.dataset.action;
-    const index = e.target.dataset.index;
-    if (!action || index === undefined) return;
-    const idx = Number(index);
-    if (action === "toggle" && todos[idx]) {
-        todos[idx].erledigt = !todos[idx].erledigt;
-        saveData();
-        render();
-    }
-    if (action === "delete" && todos[idx]) {
-        todos.splice(idx, 1);
-        saveData();
-        render();
-    }
-});
-
-/* ===================================
-   FIRESTORE SECURITY RULES HINWEIS
-   =================================== */
-// WICHTIG: In Firebase Console → Firestore → Rules folgende Rules setzen:
-/*
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
+if (list) {
+    list.addEventListener("click", e => {
+        const action = e.target.dataset.action;
+        const index = e.target.dataset.index;
+        if (!action || index === undefined) return;
+        const idx = Number(index);
+        if (action === "toggle" && todos[idx]) {
+            todos[idx].erledigt = !todos[idx].erledigt;
+            saveData();
+            render();
+        }
+        if (action === "delete" && todos[idx]) {
+            todos.splice(idx, 1);
+            saveData();
+            render();
+        }
+    });
 }
-*/
