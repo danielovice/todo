@@ -1,14 +1,14 @@
 /* ===================================
    🔥 FIREBASE KONFIGURATION
    =================================== */
-// 🔥 HIER DEINE FIREBASE DATEN EINFÜGEN (siehe Anleitung unten)
 const firebaseConfig = {
-    apiKey: "DEIN_API_KEY",
-    authDomain: "DEIN_PROJECT.firebaseapp.com",
-    projectId: "DEIN_PROJECT_ID",
-    storageBucket: "DEIN_PROJECT.appspot.com",
-    messagingSenderId: "DEIN_SENDER_ID",
-    appId: "DEIN_APP_ID"
+    apiKey: "AIzaSyAd-m4ivSitRoH2IHjZS8N9TO4N6o3f0-c",
+    authDomain: "todo-c28f9.firebaseapp.com",
+    projectId: "todo-c28f9",
+    storageBucket: "todo-c28f9.firebasestorage.app",
+    messagingSenderId: "877149325722",
+    appId: "1:877149325722:web:aecf751686620fd2715223",
+    measurementId: "G-WF68HR6TLN"
 };
 
 // Firebase initialisieren
@@ -34,7 +34,7 @@ const authToggle = document.getElementById("authToggle");
 const authError = document.getElementById("authError");
 const logoutBtn = document.getElementById("logoutBtn");
 
-// App Elemente (werden nach Login initialisiert)
+// App Elemente
 let input, addBtn, list, filterBtns, counter, listTabs, listTitle, menuBtn, menuDropdown, addListBtn;
 let addListModal, listNameInput, listTypeSelect, colorCircles, confirmAddListBtn, closeModalBtn, colorPreview;
 let autocompleteList;
@@ -112,7 +112,7 @@ authSubmitBtn.addEventListener("click", async () => {
             
             // Leere Datenbank erstellen
             await db.collection("users").doc(userCredential.user.uid).set({
-                lists: {},
+                lists: { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } },
                 listOrder: ["Meine Liste"],
                 currentList: "Meine Liste",
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -200,7 +200,7 @@ async function saveData() {
 }
 
 /* ===================================
-   APP INITIALISIEREN
+   APP INITIALISIERUNG
    =================================== */
 
 function initApp() {
@@ -332,10 +332,12 @@ function setupEventListeners() {
 }
 
 /* ===================================
-   RESTLICHE APP FUNKTIONEN
+   APP FUNKTIONEN
    =================================== */
 
 function updateButtonColors(color) {
+    if (!addListBtn || !addBtn || !menuBtn) return;
+    
     addListBtn.style.background = color;
     addListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     addBtn.style.background = color;
@@ -343,12 +345,14 @@ function updateButtonColors(color) {
     menuBtn.style.background = color;
     menuBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
-    filterBtns.forEach(btn => {
-        if (!btn.classList.contains('active')) {
-            btn.style.background = color;
-            btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
-        }
-    });
+    if (filterBtns) {
+        filterBtns.forEach(btn => {
+            if (!btn.classList.contains('active')) {
+                btn.style.background = color;
+                btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
+            }
+        });
+    }
 }
 
 function adjustColor(color, amount) {
@@ -440,6 +444,7 @@ function addTodo() {
 }
 
 function render() {
+    if (!list) return;
     list.innerHTML = "";
     if (!todos || !Array.isArray(todos)) { todos = []; saveData(); }
 
@@ -528,16 +533,16 @@ function highlightNumbers(text) {
 function getInternalCategory(itemText) {
     const lowerText = itemText.toLowerCase().trim();
     const keywords = {
-        'Milchprodukte': ['milch', 'käse', 'joghurt', 'butter', 'eier', 'ei'],
-        'Obst': ['apfel', 'birne', 'banane', 'orange', 'obst'],
-        'Gemüse': ['tomate', 'gurke', 'salat', 'kartoffel', 'gemüse'],
-        'Fleisch': ['fleisch', 'huhn', 'fisch', 'bauch', 'ripperl'],
-        'Wurst': ['wurst', 'salami', 'schinken'],
-        'Brot': ['brot', 'semmel', 'weckerl', 'mehl', 'nudel'],
-        'Getränke': ['wasser', 'saft', 'bier', 'kaffee', 'tee'],
-        'Snacks': ['chips', 'kekse', 'nüsse'],
-        'Süßigkeiten': ['schokolade', 'eis', 'nutella'],
-        'Haushalt': ['papier', 'reiniger', 'waschmittel'],
+        'Milchprodukte': ['milch', 'käse', 'joghurt', 'butter', 'eier', 'ei', 'sahne', 'quark'],
+        'Obst': ['apfel', 'birne', 'banane', 'orange', 'obst', 'traube', 'erdbeere'],
+        'Gemüse': ['tomate', 'gurke', 'salat', 'kartoffel', 'gemüse', 'karotte', 'zwiebel'],
+        'Fleisch': ['fleisch', 'huhn', 'fisch', 'bauch', 'ripperl', 'schwein', 'rind'],
+        'Wurst': ['wurst', 'salami', 'schinken', 'extrawurst'],
+        'Brot': ['brot', 'semmel', 'weckerl', 'mehl', 'nudel', 'pasta', 'reis'],
+        'Getränke': ['wasser', 'saft', 'bier', 'kaffee', 'tee', 'cola', 'wein'],
+        'Snacks': ['chips', 'kekse', 'nüsse', 'riegel', 'popcorn'],
+        'Süßigkeiten': ['schokolade', 'eis', 'nutella', 'bonbon', 'lakritz'],
+        'Haushalt': ['papier', 'reiniger', 'waschmittel', 'spülmittel', 'müllbeutel'],
         'Sonstiges': []
     };
     
@@ -570,6 +575,7 @@ function getItemsByCategory(items) {
 }
 
 function showAutocomplete(value) {
+    if (!autocompleteList) return;
     if (!value || value.length < 2) {
         autocompleteList.classList.remove('show');
         autocompleteList.innerHTML = '';
@@ -611,6 +617,7 @@ function showAutocomplete(value) {
 }
 
 function renderTabs() {
+    if (!listTabs) return;
     listTabs.innerHTML = "";
     
     listOrder.forEach((name) => {
@@ -676,3 +683,18 @@ list.addEventListener("click", e => {
         render();
     }
 });
+
+/* ===================================
+   FIRESTORE SECURITY RULES HINWEIS
+   =================================== */
+// WICHTIG: In Firebase Console → Firestore → Rules folgende Rules setzen:
+/*
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+*/
