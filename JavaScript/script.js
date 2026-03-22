@@ -22,20 +22,12 @@ const confirmAddListBtn = document.getElementById("confirmAddListBtn");
 const closeModalBtn = document.getElementById("closeModalBtn");
 const colorPreview = document.getElementById("colorPreview");
 
-// AI Settings Modal
-const aiSettingsModal = document.getElementById("aiSettingsModal");
-const aiApiKeyInput = document.getElementById("aiApiKey");
-const closeAiSettingsBtn = document.getElementById("closeAiSettingsBtn");
-const saveAiSettingsBtn = document.getElementById("saveAiSettingsBtn");
-const testAiBtn = document.getElementById("testAiBtn");
-
 let lists = {};
 let listOrder = [];
 let currentList = "Meine Liste";
 let filter = null;
 let selectedColor = "#0a84ff";
 let todos = [];
-let aiApiKey = localStorage.getItem("aiApiKey") || "";
 
 /* -------------------------------
    LOCAL STORAGE LADEN
@@ -229,234 +221,164 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------
-   🔥 INTELLIGENTE KI KATEGORISIERUNG
+   🔥 INTERNE KATEGORISIERUNG (Nicht angezeigt)
 --------------------------------- */
-const categoryKeywords = {
+const internalSubCategories = {
     'Milchprodukte': [
         'milch', 'käse', 'joghurt', 'butter', 'sahne', 'quark', 'obers', 'topfen',
         'frischkäse', 'mozzarella', 'feta', 'parmesan', 'gouda', 'emmentaler',
-        'camembert', 'brie', 'ricotta', 'hüttenkäse', 'schmelzkäse', 'margarine',
-        'creme fraiche', 'schlagsahne', 'kondensmilch', 'buttermilch', 'kefir'
+        'camembert', 'brie', 'ricotta', 'hüttenkäse', 'schmelzkäse', 'margarine'
     ],
     'Obst': [
         'apfel', 'birne', 'banane', 'orange', 'mandarine', 'zitrone', 'limette',
-        'traube', 'erdbeere', 'himbeere', 'heidelbeere', 'brombeere', 'johannisbeere',
-        'kirsche', 'pfirsich', 'marille', 'aprikose', 'pflaume', 'zwetschke',
-        'melone', 'wassermelone', 'ananas', 'mango', 'kiwi', 'papaya', 'granatapfel',
-        'feige', 'dattel', 'rosine', 'obst'
+        'traube', 'erdbeere', 'himbeere', 'heidelbeere', 'kirsche', 'pfirsich',
+        'marille', 'aprikose', 'melone', 'ananas', 'mango', 'kiwi', 'obst'
     ],
     'Gemüse': [
         'tomate', 'gurke', 'salat', 'karotte', 'zwiebel', 'kartoffel', 'erdapfel',
         'paprika', 'zucchini', 'aubergine', 'brokkoli', 'blumenkohl', 'kohl', 'kraut',
         'spinat', 'lauch', 'sellerie', 'spargel', 'kürbis', 'pilz', 'champignon',
-        'bohne', 'erbse', 'mais', 'rettich', 'radieschen', 'rübe', 'gemüse',
-        'knoblauch', 'ingwer', 'kräuter', 'petersilie', 'schnittlauch', 'basilikum',
-        'rosmarin', 'thymian', 'minze', 'avocado', 'oliven'
+        'knoblauch', 'ingwer', 'gemüse'
     ],
     'Fleisch': [
         'fleisch', 'rind', 'schwein', 'kalb', 'lamm', 'huhn', 'hähnchen', 'pute',
-        'ente', 'gans', 'wild', 'reh', 'hirsch', 'kaninchen', 'steak', 'schnitzel',
-        'kotelett', 'braten', 'geschnetzeltes', 'gyros', 'döner', 'fisch', 'lachs',
-        'thunfisch', 'forelle', 'kabeljau', 'seelachs', 'garnelen', 'shrimps',
-        'meeresfrüchte', 'wurstfleisch', 'hackfleisch', 'faschiertes', 'leber',
-        'speck', 'schinken', 'bauch', 'ripperl', 'rippchen', 'schweinsbraten',
-        'tascherl', 'beuschel', 'schlögel', 'nuss', 'bug', 'wammerl'
+        'steak', 'schnitzel', 'fisch', 'lachs', 'thunfisch', 'garnelen',
+        'speck', 'schinken', 'bauch', 'ripperl', 'wammerl', 'beuschel'
     ],
     'Wurst': [
         'wurst', 'salami', 'extrawurst', 'fleischwurst', 'käsekrainer', 'debreziner',
-        'bratwurst', 'wiener', 'frankfurter', 'burenwurst', 'leberkäse', 'leberwurst',
-        'pastete', 'mortadella', 'prosciutto', 'serrano', 'chorizo', 'pepperoni',
-        'landjäger', 'knackwurst', 'bockwurst', 'weißwurst', 'blutwurst', 'presswurst'
+        'bratwurst', 'wiener', 'frankfurter', 'leberkäse', 'pastete'
     ],
     'Brot': [
         'brot', 'semmel', 'brötchen', 'weckerl', 'baguette', 'toast', 'vollkornbrot',
-        'mischbrot', 'roggenbrot', 'weißbrot', 'dinkelbrot', 'kruste', 'laib',
-        'mehl', 'nudel', 'pasta', 'spaghetti', 'reis', 'getreide', 'haferflocken',
-        'müsli', 'cornflakes', 'knäckebrot', 'zwieback', 'paniermehl', 'strudel',
-        'kuchen', 'torte', 'gebäck', 'kipferl', 'croissant', 'muffin', 'donut',
-        'pizza', 'fladenbrot', 'focaccia', 'ciabatta', 'brezel', 'stangerl'
+        'mehl', 'nudel', 'pasta', 'spaghetti', 'reis', 'haferflocken', 'müsli',
+        'kuchen', 'torte', 'gebäck', 'kipferl', 'croissant', 'pizza'
     ],
     'Getränke': [
-        'wasser', 'saft', 'cola', 'sprite', 'fanta', 'bier', 'wein', 'sekt',
-        'champagner', 'prosecco', 'most', 'limonade', 'energy', 'kaffee', 'tee',
-        'kakao', 'schokolade', 'milchshake', 'smoothie', 'eistee', 'alkohol',
-        'schnaps', 'wodka', 'whisky', 'rum', 'gin', 'cocktail', 'sirup', 'nektar'
+        'wasser', 'saft', 'cola', 'bier', 'wein', 'sekt', 'limonade', 'energy',
+        'kaffee', 'tee', 'kakao', 'schnaps', 'wodka', 'whisky', 'most'
     ],
     'Snacks': [
-        'chips', 'flips', 'popcorn', 'cracker', 'salzstangen', 'pretzels', 'nüsse',
-        'erdnuss', 'mandel', 'cashew', 'pistazie', 'walnuss', 'haselnuss', 'sonnenblumenkern',
-        'kürbiskern', 'studentenfutter', 'riegel', 'müsliriegel', 'proteinriegel',
-        'keks', 'gebäck', 'waffel', 'knabber', 'nacho', 'tortilla'
+        'chips', 'flips', 'popcorn', 'cracker', 'salzstangen', 'nüsse', 'erdnuss',
+        'mandel', 'riegel', 'keks', 'gebäck', 'waffel', 'knabber'
     ],
     'Süßigkeiten': [
-        'schokolade', 'schoki', 'nougat', 'praline', 'bonbon', 'lutscher', 'kaugummi',
-        'gummibärchen', 'lakritz', 'marshmallow', 'toffee', 'karamell', 'nussnougat',
-        'nutella', 'm&m', 'kitkat', 'snickers', 'twix', ' Bounty', 'milka',
-        'lindt', 'raspelschokolade', 'weiße schokolade', 'vollmilch', 'zartbitter',
-        'eis', 'eiscreme', 'sorbet', 'parfait', 'eiskonfekt', 'magnum', 'cornetto'
+        'schokolade', 'schoki', 'nougat', 'bonbon', 'lutscher', 'kaugummi',
+        'gummibärchen', 'lakritz', 'nutella', 'eis', 'eiscreme'
     ],
     'Haushalt': [
-        'papier', 'toilettenpapier', 'küchenpapier', 'taschentuch', 'tempo', 'serviette',
-        'reiniger', 'spülmittel', 'waschmittel', 'weichspüler', 'putzmittel', 'allzweckreiniger',
-        'badreiniger', 'glasreiniger', 'bodenreiniger', 'kalkreiniger', 'schimmelentferner',
-        'müllbeutel', 'müllsack', 'alufolie', 'frischhaltefolie', 'backpapier', 'gefrierbeutel',
-        'schwamm', 'lappen', 'tuch', 'bürste', 'besen', 'staubsauger', 'wischmopp',
-        'kerze', 'batterie', 'glühbirne', 'luft erfrischer', 'duft', 'seife', 'handseife'
+        'papier', 'toilettenpapier', 'küchenpapier', 'taschentuch', 'tempo',
+        'reiniger', 'spülmittel', 'waschmittel', 'putzmittel', 'müllbeutel',
+        'schwamm', 'lappen', 'bürste', 'batterie', 'seife'
     ],
     'Sonstiges': [
-        'geschenk', 'karte', 'umschlag', 'basteln', 'buch', 'zeitschrift', 'zeitung',
-        'spielzeug', 'baby', 'windel', 'tier', 'hundefutter', 'katzenfutter',
-        'apotheke', 'medizin', 'tablette', 'pflaster', 'verband', 'vitamin',
-        'kosmetik', 'makeup', 'parfüm', 'rasierer', 'zahnbürste', 'zahnseide',
-        'shampoo', 'duschgel', 'creme', 'lotion', 'sonnencreme', 'deo', 'nagellack'
+        'geschenk', 'buch', 'tier', 'hundefutter', 'katzenfutter', 'apotheke',
+        'medizin', 'kosmetik', 'shampoo', 'creme', 'deo'
     ]
 };
 
-/* -------------------------------
-   🔥 AI KATEGORISIERUNG (OpenAI)
---------------------------------- */
-async function categorizeWithAI(itemText) {
-    if (!aiApiKey) return null;
+// 🔥 Interne Kategorie ermitteln (für Sortierung)
+function getInternalCategory(itemText) {
+    const lowerText = itemText.toLowerCase().trim();
     
-    try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${aiApiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [{
-                    role: 'system',
-                    content: 'Du bist ein Einkaufslisten-Assistent. Kategorisiere den folgenden Artikel in EINE dieser Kategorien: Milchprodukte, Obst, Gemüse, Fleisch, Wurst, Brot, Getränke, Snacks, Süßigkeiten, Haushalt, Sonstiges. Antworte NUR mit dem Kategoriennamen, nichts anderes. Verstehe auch Mundart und Dialekte.'
-                }, {
-                    role: 'user',
-                    content: itemText
-                }],
-                max_tokens: 20,
-                temperature: 0.3
-            })
-        });
-        
-        if (!response.ok) throw new Error('AI API Error');
-        
-        const data = await response.json();
-        const category = data.choices[0].message.content.trim();
-        
-        // Validieren ob Kategorie existiert
-        const validCategories = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten', 'Haushalt', 'Sonstiges'];
-        if (validCategories.includes(category)) {
-            return category;
-        }
-        return null;
-    } catch (e) {
-        console.log('AI Kategorisierung fehlgeschlagen:', e);
-        return null;
-    }
-}
-
-function getCategoryForItem(itemText) {
-    const originalText = itemText.trim();
-    const lowerText = originalText.toLowerCase();
-    
-    // 1. 🔥 Erst AI versuchen (wenn API Key vorhanden)
-    if (aiApiKey) {
-        const aiCategory = categorizeWithAI(originalText);
-        if (aiCategory) return aiCategory;
-    }
-    
-    // 2. Exakte Übereinstimmung
-    for (const [category, keywords] of Object.entries(categoryKeywords)) {
-        if (keywords.includes(lowerText)) {
-            return category;
-        }
-    }
-    
-    // 3. Compound-Wörter Pattern
-    const germanCompoundPatterns = [
-        { pattern: /(milch)(.*)(brot|semmel|weckerl|brötchen)/i, category: 'Brot' },
-        { pattern: /(vollkorn)(.*)(brot|semmel|weckerl)/i, category: 'Brot' },
-        { pattern: /(weiß)(.*)(brot|semmel)/i, category: 'Brot' },
-        { pattern: /(roggen)(.*)(brot)/i, category: 'Brot' },
-        { pattern: /(dinkel)(.*)(brot)/i, category: 'Brot' },
-        { pattern: /(käse)(.*)(brot|semmel)/i, category: 'Brot' },
+    // Compound-Wörter prüfen (Milchbrötchen → Brot)
+    const compoundPatterns = [
+        { pattern: /(milch)(.*)(brot|semmel|weckerl)/i, category: 'Brot' },
+        { pattern: /(vollkorn)(.*)(brot)/i, category: 'Brot' },
         { pattern: /(fleisch)(.*)(wurst)/i, category: 'Wurst' },
-        { pattern: /(leber)(.*)(wurst|käse)/i, category: 'Wurst' },
-        { pattern: /(blut)(.*)(wurst)/i, category: 'Wurst' },
-        { pattern: /(schoko)(.*)(lade|riegel|kuss)/i, category: 'Süßigkeiten' },
-        { pattern: /(nuss)(.*)(nougat|schokolade)/i, category: 'Süßigkeiten' },
-        { pattern: /(eis)(.*)(creme|kugel)/i, category: 'Süßigkeiten' },
-        { pattern: /(frucht)(.*)(joghurt|gummi)/i, category: 'Milchprodukte' },
-        { pattern: /(soja)(.*)(milch|joghurt)/i, category: 'Milchprodukte' },
-        { pattern: /(hafer)(.*)(milch|flocken)/i, category: 'Brot' },
-        { pattern: /(mandel)(.*)(milch|mus)/i, category: 'Milchprodukte' },
-        { pattern: /(kokos)(.*)(milch|raspel)/i, category: 'Milchprodukte' },
-        { pattern: /(apfel)(.*)(saft|mus|strudel)/i, category: 'Getränke' },
-        { pattern: /(orange)(.*)(saft)/i, category: 'Getränke' },
-        { pattern: /(trauben)(.*)(saft|kern)/i, category: 'Getränke' },
-        { pattern: /(tomaten)(.*)(saft|mark|soße)/i, category: 'Gemüse' },
-        { pattern: /(gemüse)(.*)(brühe|suppe)/i, category: 'Gemüse' },
-        { pattern: /(fleisch)(.*)(brühe|suppe)/i, category: 'Fleisch' },
-        { pattern: /(huhn)(.*)(suppe|brühe)/i, category: 'Fleisch' },
-        { pattern: /(fisch)(.*)(stäbchen|filet)/i, category: 'Fleisch' },
-        { pattern: /(kartoffel)(.*)(stock|püree|salat)/i, category: 'Gemüse' },
-        { pattern: /(erdapfel)(.*)(stock|püree)/i, category: 'Gemüse' },
-        { pattern: /(schwein)(.*)(bauch|ripperl)/i, category: 'Fleisch' },
-        { pattern: /(schweins)(.*)(braten)/i, category: 'Fleisch' }
+        { pattern: /(schoko)(.*)(lade|riegel)/i, category: 'Süßigkeiten' },
+        { pattern: /(apfel)(.*)(saft)/i, category: 'Getränke' },
+        { pattern: /(tomaten)(.*)(saft|mark)/i, category: 'Gemüse' },
+        { pattern: /(schwein)(.*)(bauch|ripperl)/i, category: 'Fleisch' }
     ];
     
-    for (const { pattern, category } of germanCompoundPatterns) {
-        if (pattern.test(lowerText)) {
-            return category;
-        }
+    for (const { pattern, category } of compoundPatterns) {
+        if (pattern.test(lowerText)) return category;
     }
     
-    // 4. Endungen prüfen
+    // Endungen prüfen
     const endKeywords = {
-        'brot': 'Brot', 'semmel': 'Brot', 'weckerl': 'Brot', 'brötchen': 'Brot',
-        'milch': 'Milchprodukte', 'käse': 'Milchprodukte', 'joghurt': 'Milchprodukte',
+        'brot': 'Brot', 'semmel': 'Brot', 'weckerl': 'Brot',
+        'milch': 'Milchprodukte', 'käse': 'Milchprodukte',
         'wurst': 'Wurst', 'fleisch': 'Fleisch', 'fisch': 'Fleisch',
-        'apfel': 'Obst', 'birne': 'Obst', 'banane': 'Obst', 'orange': 'Obst',
-        'tomate': 'Gemüse', 'gurke': 'Gemüse', 'kartoffel': 'Gemüse', 'erdapfel': 'Gemüse',
-        'saft': 'Getränke', 'wasser': 'Getränke', 'tee': 'Getränke', 'kaffee': 'Getränke',
-        'schokolade': 'Süßigkeiten', 'eis': 'Süßigkeiten', 'keks': 'Snacks',
-        'chips': 'Snacks', 'papier': 'Haushalt', 'mittel': 'Haushalt',
-        'nudel': 'Brot', 'pasta': 'Brot', 'reis': 'Brot', 'mehl': 'Brot'
+        'apfel': 'Obst', 'tomate': 'Gemüse', 'kartoffel': 'Gemüse',
+        'saft': 'Getränke', 'wasser': 'Getränke',
+        'schokolade': 'Süßigkeiten', 'eis': 'Süßigkeiten',
+        'papier': 'Haushalt', 'mittel': 'Haushalt'
     };
     
     for (const [ending, category] of Object.entries(endKeywords)) {
-        if (lowerText.endsWith(ending)) {
-            return category;
-        }
+        if (lowerText.endsWith(ending)) return category;
     }
     
-    // 5. Teilübereinstimmung
-    for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    // Keywords durchsuchen
+    for (const [category, keywords] of Object.entries(internalSubCategories)) {
         for (const keyword of keywords) {
-            if (lowerText.includes(keyword)) {
-                return category;
-            }
+            if (lowerText.includes(keyword)) return category;
         }
     }
     
     return 'Sonstiges';
 }
 
+// 🔥 Hauptkategorie ermitteln (wird angezeigt)
+function getMainCategory(itemText) {
+    const internal = getInternalCategory(itemText);
+    
+    // Lebensmittel = alle essbaren Dinge
+    const foodCategories = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten'];
+    
+    if (foodCategories.includes(internal)) {
+        return 'Lebensmittel';
+    } else if (internal === 'Haushalt') {
+        return 'Haushalt';
+    } else {
+        return 'Sonstiges';
+    }
+}
+
+// 🔥 Sortierreihenfolge innerhalb von Lebensmittel
+function getFoodSortOrder(internalCategory) {
+    const order = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten'];
+    return order.indexOf(internalCategory);
+}
+
 function getItemsByCategory(items) {
-    const categorized = {};
+    const mainCategories = {
+        'Lebensmittel': [],
+        'Haushalt': [],
+        'Sonstiges': []
+    };
     
     items.forEach(item => {
-        const category = getCategoryForItem(item.text);
-        if (!categorized[category]) categorized[category] = [];
-        categorized[category].push(item);
+        const mainCat = getMainCategory(item.text);
+        const internalCat = getInternalCategory(item.text);
+        const sortOrder = getFoodSortOrder(internalCat);
+        
+        mainCategories[mainCat].push({
+            ...item,
+            _internalCategory: internalCat,
+            _sortOrder: sortOrder
+        });
     });
     
-    return categorized;
+    // 🔥 Lebensmittel nach interner Kategorie sortieren
+    mainCategories['Lebensmittel'].sort((a, b) => {
+        if (a._sortOrder !== b._sortOrder) {
+            return a._sortOrder - b._sortOrder;
+        }
+        return a.text.localeCompare(b.text);
+    });
+    
+    // Haushalts- und Sonstiges alphabetisch
+    mainCategories['Haushalt'].sort((a, b) => a.text.localeCompare(b.text));
+    mainCategories['Sonstiges'].sort((a, b) => a.text.localeCompare(b.text));
+    
+    return mainCategories;
 }
 
 /* -------------------------------
-   🔥 AUTOCOMPLETE FÜR EINKAUFS LISTE
+   AUTOCOMPLETE
 --------------------------------- */
 function showAutocomplete(value) {
     const currentListData = lists[currentList];
@@ -529,10 +451,9 @@ document.addEventListener('click', (e) => {
 });
 
 /* -------------------------------
-   🔥 ZAHLEN + EINHEITEN IN BLAU
+   ZAHLEN + EINHEITEN IN BLAU
 --------------------------------- */
 function highlightNumbers(text) {
-    // 🔥 Zahlen + Einheiten erkennen (2 Eier, 500g Milch, 1.5kg, 250ml, 3st, 10dag, etc.)
     const numberPattern = /^(\d+\.?\d*\s*(g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?\s*)/i;
     const match = text.match(numberPattern);
     
@@ -557,18 +478,22 @@ function render() {
 
     if (isShoppingList) {
         const categorizedItems = getItemsByCategory(todos);
-        const sortedCategories = Object.keys(categorizedItems).sort();
+        
+        // 🔥 Nur 3 Hauptkategorien anzeigen
+        const displayOrder = ['Lebensmittel', 'Haushalt', 'Sonstiges'];
+        
+        displayOrder.forEach(category => {
+            if (categorizedItems[category].length > 0) {
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'category-header';
+                categoryHeader.textContent = category;
+                list.appendChild(categoryHeader);
 
-        sortedCategories.forEach(category => {
-            const categoryHeader = document.createElement('div');
-            categoryHeader.className = 'category-header';
-            categoryHeader.textContent = category;
-            list.appendChild(categoryHeader);
-
-            categorizedItems[category].forEach(todo => {
-                const originalIndex = todos.indexOf(todo);
-                createTodoElement(todo, originalIndex, isShoppingList);
-            });
+                categorizedItems[category].forEach(todo => {
+                    const originalIndex = todos.indexOf(todo);
+                    createTodoElement(todo, originalIndex, isShoppingList);
+                });
+            }
         });
     } else {
         todos.forEach((todo, index) => {
@@ -608,7 +533,6 @@ function createTodoElement(todo, index, isShoppingList = false) {
     leftDiv.appendChild(checkbox);
 
     const span = document.createElement("span");
-    // 🔥 Zahlen + Einheiten in blau für Einkaufsliste
     span.innerHTML = isShoppingList ? highlightNumbers(todo.text) : todo.text;
     if (todo.erledigt) span.classList.add("erledigt");
     span.addEventListener("dblclick", e => { e.stopPropagation(); startEditing(span, index); });
@@ -1012,42 +936,6 @@ addListModal.addEventListener("click", (e) => {
 });
 
 /* -------------------------------
-   🔥 AI SETTINGS
---------------------------------- */
-// AI Settings Button im Menü hinzufügen (optional)
-function createAiSettingsButton() {
-    const aiBtn = document.createElement("button");
-    aiBtn.textContent = "🤖 AI";
-    aiBtn.style.cssText = "position: fixed; bottom: 80px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: #5856d6; box-shadow: 0 4px 0 #3d3b9e; z-index: 99; font-size: 20px; padding: 0;";
-    aiBtn.onclick = () => {
-        aiApiKeyInput.value = aiApiKey;
-        aiSettingsModal.style.display = "flex";
-    };
-    document.body.appendChild(aiBtn);
-}
-
-closeAiSettingsBtn.addEventListener("click", () => {
-    aiSettingsModal.style.display = "none";
-});
-
-saveAiSettingsBtn.addEventListener("click", () => {
-    aiApiKey = aiApiKeyInput.value.trim();
-    localStorage.setItem("aiApiKey", aiApiKey);
-    aiSettingsModal.style.display = "none";
-    alert("AI Einstellungen gespeichert!");
-});
-
-testAiBtn.addEventListener("click", async () => {
-    const testItem = "Bauch";
-    const category = await categorizeWithAI(testItem);
-    if (category) {
-        alert(`✅ AI funktioniert!\n"${testItem}" → ${category}`);
-    } else {
-        alert("❌ AI Test fehlgeschlagen. API Key prüfen.");
-    }
-});
-
-/* -------------------------------
    SERVICE WORKER
 --------------------------------- */
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js").catch(err => console.log("SW Fehler:", err));
@@ -1055,6 +943,5 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-work
 /* -------------------------------
    START
 --------------------------------- */
-createAiSettingsButton();
 renderTabs();
 render();
