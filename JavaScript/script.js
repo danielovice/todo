@@ -221,13 +221,14 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------
-   🔥 INTERNE KATEGORISIERUNG (Nicht angezeigt)
+   🔥 INTERNE KATEGORISIERUNG
 --------------------------------- */
 const internalSubCategories = {
     'Milchprodukte': [
         'milch', 'käse', 'joghurt', 'butter', 'sahne', 'quark', 'obers', 'topfen',
         'frischkäse', 'mozzarella', 'feta', 'parmesan', 'gouda', 'emmentaler',
-        'camembert', 'brie', 'ricotta', 'hüttenkäse', 'schmelzkäse', 'margarine'
+        'camembert', 'brie', 'ricotta', 'hüttenkäse', 'schmelzkäse', 'margarine',
+        'eier', 'ei'  // 🔥 EIER HIERZUGEFÜGT
     ],
     'Obst': [
         'apfel', 'birne', 'banane', 'orange', 'mandarine', 'zitrone', 'limette',
@@ -277,11 +278,9 @@ const internalSubCategories = {
     ]
 };
 
-// 🔥 Interne Kategorie ermitteln (für Sortierung)
 function getInternalCategory(itemText) {
     const lowerText = itemText.toLowerCase().trim();
     
-    // Compound-Wörter prüfen (Milchbrötchen → Brot)
     const compoundPatterns = [
         { pattern: /(milch)(.*)(brot|semmel|weckerl)/i, category: 'Brot' },
         { pattern: /(vollkorn)(.*)(brot)/i, category: 'Brot' },
@@ -296,7 +295,6 @@ function getInternalCategory(itemText) {
         if (pattern.test(lowerText)) return category;
     }
     
-    // Endungen prüfen
     const endKeywords = {
         'brot': 'Brot', 'semmel': 'Brot', 'weckerl': 'Brot',
         'milch': 'Milchprodukte', 'käse': 'Milchprodukte',
@@ -311,7 +309,6 @@ function getInternalCategory(itemText) {
         if (lowerText.endsWith(ending)) return category;
     }
     
-    // Keywords durchsuchen
     for (const [category, keywords] of Object.entries(internalSubCategories)) {
         for (const keyword of keywords) {
             if (lowerText.includes(keyword)) return category;
@@ -321,11 +318,8 @@ function getInternalCategory(itemText) {
     return 'Sonstiges';
 }
 
-// 🔥 Hauptkategorie ermitteln (wird angezeigt)
 function getMainCategory(itemText) {
     const internal = getInternalCategory(itemText);
-    
-    // Lebensmittel = alle essbaren Dinge
     const foodCategories = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten'];
     
     if (foodCategories.includes(internal)) {
@@ -337,7 +331,6 @@ function getMainCategory(itemText) {
     }
 }
 
-// 🔥 Sortierreihenfolge innerhalb von Lebensmittel
 function getFoodSortOrder(internalCategory) {
     const order = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten'];
     return order.indexOf(internalCategory);
@@ -362,7 +355,6 @@ function getItemsByCategory(items) {
         });
     });
     
-    // 🔥 Lebensmittel nach interner Kategorie sortieren
     mainCategories['Lebensmittel'].sort((a, b) => {
         if (a._sortOrder !== b._sortOrder) {
             return a._sortOrder - b._sortOrder;
@@ -370,7 +362,6 @@ function getItemsByCategory(items) {
         return a.text.localeCompare(b.text);
     });
     
-    // Haushalts- und Sonstiges alphabetisch
     mainCategories['Haushalt'].sort((a, b) => a.text.localeCompare(b.text));
     mainCategories['Sonstiges'].sort((a, b) => a.text.localeCompare(b.text));
     
@@ -478,8 +469,6 @@ function render() {
 
     if (isShoppingList) {
         const categorizedItems = getItemsByCategory(todos);
-        
-        // 🔥 Nur 3 Hauptkategorien anzeigen
         const displayOrder = ['Lebensmittel', 'Haushalt', 'Sonstiges'];
         
         displayOrder.forEach(category => {
