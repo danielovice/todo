@@ -11,6 +11,7 @@ const listTitle = document.getElementById("listTitle");
 const menuBtn = document.getElementById("menuBtn");
 const menuDropdown = document.getElementById("menuDropdown");
 const addListBtn = document.getElementById("addListBtn");
+const autocompleteList = document.getElementById("autocompleteList");
 
 // Modal Elemente
 const addListModal = document.getElementById("addListModal");
@@ -302,19 +303,18 @@ const categoryKeywords = {
     ]
 };
 
-// 🔥 KI-Funktion: Analysiert den gesamten Text intelligent
 function getCategoryForItem(itemText) {
     const originalText = itemText.trim();
     const lowerText = originalText.toLowerCase();
     
-    // 1. Exakte Übereinstimmung prüfen (höchste Priorität)
+    // 1. Exakte Übereinstimmung
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
         if (keywords.includes(lowerText)) {
             return category;
         }
     }
     
-    // 2. Worttrennung bei Compound-Wörtern (Milchbrötchen → Milch + Brötchen)
+    // 2. Compound-Wörter Pattern
     const germanCompoundPatterns = [
         { pattern: /(milch)(.*)(brot|semmel|weckerl|brötchen)/i, category: 'Brot' },
         { pattern: /(vollkorn)(.*)(brot|semmel|weckerl)/i, category: 'Brot' },
@@ -351,7 +351,7 @@ function getCategoryForItem(itemText) {
         }
     }
     
-    // 3. Nach Hauptnomen am ENDE des Wortes suchen (deutsche Compound-Regel)
+    // 3. Endungen prüfen
     const endKeywords = {
         'brot': 'Brot', 'semmel': 'Brot', 'weckerl': 'Brot', 'brötchen': 'Brot',
         'milch': 'Milchprodukte', 'käse': 'Milchprodukte', 'joghurt': 'Milchprodukte',
@@ -370,7 +370,7 @@ function getCategoryForItem(itemText) {
         }
     }
     
-    // 4. Teilübereinstimmung im gesamten Text
+    // 4. Teilübereinstimmung
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
         for (const keyword of keywords) {
             if (lowerText.includes(keyword)) {
@@ -379,25 +379,114 @@ function getCategoryForItem(itemText) {
         }
     }
     
-    // 5. Standard-Kategorie
     return 'Sonstiges';
 }
 
 function getItemsByCategory(items) {
     const categorized = {};
-    const completedItems = [];
     
     items.forEach(item => {
-        if (item.erledigt) {
-            completedItems.push(item);
-        } else {
-            const category = getCategoryForItem(item.text);
-            if (!categorized[category]) categorized[category] = [];
-            categorized[category].push(item);
-        }
+        const category = getCategoryForItem(item.text);
+        if (!categorized[category]) categorized[category] = [];
+        categorized[category].push(item);
     });
     
-    return { categorized, completedItems };
+    return categorized;
+}
+
+/* -------------------------------
+   🔥 AUTOCOMPLETE FÜR EINKAUFS LISTE
+--------------------------------- */
+function showAutocomplete(value) {
+    const currentListData = lists[currentList];
+    const isShoppingList = currentListData && currentListData.type === 'shopping';
+    
+    if (!isShoppingList || !value || value.length < 2) {
+        autocompleteList.classList.remove('show');
+        autocompleteList.innerHTML = '';
+        return;
+    }
+    
+    // 🔥 Alle bisherigen Items aus allen Einkaufslisten sammeln
+    const allShoppingItems = new Set();
+    for (const listName in lists) {
+        if (lists[listName].type === 'shopping') {
+            lists[listName].todos.forEach(todo => {
+                allShoppingItems.add(todo.text);
+            });
+        }
+    }
+    
+    // 🔥 Vorschläge filtern
+    const suggestions = Array.from(allShoppingItems).filter(item => 
+        item.toLowerCase().includes(value.toLowerCase()) && 
+        item.toLowerCase() !== value.toLowerCase()
+    ).slice(0, 5);
+    
+    if (suggestions.length === 0) {
+        autocompleteList.classList.remove('show');
+        autocompleteList.innerHTML = '';
+        return;
+    }
+    
+    // 🔥 Vorschläge anzeigen
+    autocompleteList.innerHTML = '';
+    suggestions.forEach(suggestion => {
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item';
+        
+        // 🔥 Match hervorheben
+        const regex = new RegExp(`(${value})`, 'gi');
+        const highlighted = suggestion.replace(regex, '<span class="match">$1</span>');
+        div.innerHTML = highlighted;
+        
+        div.addEventListener('click', () => {
+            input.value = suggestion;
+            autocompleteList.classList.remove('show');
+            autocompleteList.innerHTML = '';
+            input.focus();
+        });
+        
+        autocompleteList.appendChild(div);
+    });
+    
+    autocompleteList.classList.add('show');
+}
+
+// Autocomplete Events
+input.addEventListener('input', (e) => {
+    showAutocomplete(e.target.value);
+});
+
+input.addEventListener('blur', () => {
+    setTimeout(() => {
+        autocompleteList.classList.remove('show');
+        autocompleteList.innerHTML = '';
+    }, 200);
+});
+
+document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !autocompleteList.contains(e.target)) {
+        autocompleteList.classList.remove('show');
+        autocompleteList.innerHTML = '';
+    }
+});
+
+/* -------------------------------
+   🔥 ZAHLEN IN BLAU MARKIEREN
+--------------------------------- */
+function highlightNumbers(text) {
+    // 🔥 Zahlen am Anfang erkennen (z.B. "2 Eier", "500g Milch")
+    const numberPattern = /^(\d+\.?\d*\s*(g|kg|ml|l|st|stk)?\s*)/i;
+    const match = text.match(numberPattern);
+    
+    if (match) {
+        const number = match[1];
+        const rest = text.slice(number.length);
+        return `<span class="number">${number}</span>${rest}`;
+    }
+    
+    return text;
 }
 
 /* -------------------------------
@@ -411,75 +500,33 @@ function render() {
     const isShoppingList = currentListData && currentListData.type === 'shopping';
 
     if (isShoppingList) {
-        const { categorized, completedItems } = getItemsByCategory(todos);
-        
-        // 🔥 Nur Kategorien anzeigen die Items haben
-        const activeCategories = Object.keys(categorized).filter(cat => categorized[cat].length > 0).sort();
-        
-        activeCategories.forEach(category => {
+        const categorizedItems = getItemsByCategory(todos);
+        const sortedCategories = Object.keys(categorizedItems).sort();
+
+        sortedCategories.forEach(category => {
             const categoryHeader = document.createElement('div');
             categoryHeader.className = 'category-header';
             categoryHeader.textContent = category;
             list.appendChild(categoryHeader);
 
-            categorized[category].forEach(todo => {
+            categorizedItems[category].forEach(todo => {
                 const originalIndex = todos.indexOf(todo);
-                createTodoElement(todo, originalIndex);
+                createTodoElement(todo, originalIndex, isShoppingList);
             });
         });
-
-        // 🔥 Erledigte Items immer ganz nach unten
-        if (completedItems.length > 0) {
-            const completedHeader = document.createElement('div');
-            completedHeader.className = 'category-header';
-            completedHeader.textContent = 'Erledigt';
-            completedHeader.style.color = '#636366';
-            list.appendChild(completedHeader);
-
-            completedItems.forEach(todo => {
-                const originalIndex = todos.indexOf(todo);
-                createTodoElement(todo, originalIndex);
-            });
-        }
     } else {
-        // 🔥 Normale Liste: Erledigte nach unten
-        const openTodos = todos.filter(t => !t.erledigt);
-        const completedTodos = todos.filter(t => t.erledigt);
-        
-        if (filter === "offen") {
-            openTodos.forEach((todo, index) => {
-                const originalIndex = todos.indexOf(todo);
-                createTodoElement(todo, originalIndex);
-            });
-        } else if (filter === "erledigt") {
-            completedTodos.forEach((todo, index) => {
-                const originalIndex = todos.indexOf(todo);
-                createTodoElement(todo, originalIndex);
-            });
-        } else {
-            openTodos.forEach((todo, index) => {
-                const originalIndex = todos.indexOf(todo);
-                createTodoElement(todo, originalIndex);
-            });
-            if (completedTodos.length > 0) {
-                const completedHeader = document.createElement('div');
-                completedHeader.className = 'category-header';
-                completedHeader.textContent = 'Erledigt';
-                completedHeader.style.color = '#636366';
-                list.appendChild(completedHeader);
-                completedTodos.forEach((todo, index) => {
-                    const originalIndex = todos.indexOf(todo);
-                    createTodoElement(todo, originalIndex);
-                });
-            }
-        }
+        todos.forEach((todo, index) => {
+            if (filter === "offen" && todo.erledigt) return;
+            if (filter === "erledigt" && !todo.erledigt) return;
+            createTodoElement(todo, index, isShoppingList);
+        });
     }
 
     updateCounter();
     updateFilterButtons();
 }
 
-function createTodoElement(todo, index) {
+function createTodoElement(todo, index, isShoppingList = false) {
     const li = document.createElement("li");
     li.dataset.index = index;
     li.style.transition = "transform 0.15s ease-out, box-shadow 0.15s ease-out";
@@ -505,7 +552,8 @@ function createTodoElement(todo, index) {
     leftDiv.appendChild(checkbox);
 
     const span = document.createElement("span");
-    span.textContent = todo.text;
+    // 🔥 Zahlen in blau für Einkaufsliste
+    span.innerHTML = isShoppingList ? highlightNumbers(todo.text) : todo.text;
     if (todo.erledigt) span.classList.add("erledigt");
     span.addEventListener("dblclick", e => { e.stopPropagation(); startEditing(span, index); });
     span.addEventListener("touchend", e => { e.stopPropagation(); handleTouchEdit(span, index); });
@@ -544,6 +592,8 @@ function addTodo() {
     todos.push({ text, erledigt: false });
     input.value = "";
     input.blur();
+    autocompleteList.classList.remove('show');
+    autocompleteList.innerHTML = '';
     saveLists();
     render();
 }
@@ -552,7 +602,7 @@ addBtn.addEventListener("click", addTodo);
 input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
 
 /* -------------------------------
-   BUTTON PRESS EFFECT (Mobile Fix)
+   BUTTON PRESS EFFECT
 --------------------------------- */
 document.addEventListener("touchstart", function(e) {
     if (e.target.tagName === "BUTTON") {
@@ -593,7 +643,7 @@ list.addEventListener("click", e => {
 });
 
 /* -------------------------------
-   FILTER (Ohne "Alle")
+   FILTER
 --------------------------------- */
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -697,7 +747,7 @@ function handleTouchEnd() {
 }
 
 /* -------------------------------
-   LISTEN MENÜ RENDER (MIT DRAG & DROP)
+   LISTEN MENÜ RENDER
 --------------------------------- */
 let listDragItem = null;
 let listTouchStartY = 0;
