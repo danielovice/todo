@@ -1,98 +1,160 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Abschlussprojekt</title>
-    <link rel="stylesheet" href="CSS/style.css">
-    <link rel="icon" type="image/png" href="pics/Screenshot 2026-03-12 185322.png">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#111111">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Todo Cloud</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+body { margin:0; font-family:sans-serif; background:#0f0f0f; color:white; }
+.container { max-width:600px; margin:auto; padding:20px; }
+.card { background:#1c1c1e; padding:20px; border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.5);} 
+input { width:100%; padding:12px; margin:6px 0; border-radius:10px; border:none; background:#2c2c2e; color:white; }
+button { padding:12px; border:none; border-radius:10px; background:#0a84ff; color:white; cursor:pointer; }
+.row { display:flex; gap:10px; }
+ul { list-style:none; padding:0; }
+li { background:#2c2c2e; margin:5px 0; padding:10px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; }
+.done { text-decoration: line-through; opacity:0.6; }
+.hidden { display:none; }
+</style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="logo">TODO</div>
-        <div class="nav-buttons">
-            <button id="addListBtn">+</button>
-            <div class="menu">
-                <button id="menuBtn">☰</button>
-                <div id="menuDropdown">
-                    <div id="listTabs"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="app">
-        <h1 id="listTitle">Meine Liste</h1>
-        <div class="input-area">
-            <input id="todoInput" type="text" placeholder="Neues Todo...">
-            <button id="addBtn">Hinzufügen</button>
-        </div>
-        
-        <div id="autocompleteList" class="autocomplete-list"></div>
-        
-        <div class="filters">
-            <button class="filter-btn" data-filter="offen">Offen</button>
-            <button class="filter-btn" data-filter="erledigt">Erledigt</button>
-        </div>
-        <p id="counter">0 von 0 erledigt</p>
-        <ul id="todoList"></ul>
-    </div>
+<div class="container">
 
-    <footer>
-        Abschlussprojekt 2026 Beigans Daniel <br>
-        HTBLA Traun
-    </footer>
+<!-- LOGIN -->
+<div id="login" class="card">
+<h2>Login</h2>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Passwort">
+<div class="row">
+<button onclick="register()">Registrieren</button>
+<button onclick="loginEmail()">Login</button>
+</div>
+<button onclick="loginGoogle()">Google</button>
+<button onclick="loginApple()">Apple</button>
+</div>
 
-    <div id="addListModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button class="modal-close" id="closeModalBtn">✕</button>
-                <h2>Neue Liste</h2>
-                <button class="modal-save" id="confirmAddListBtn">✓</button>
-            </div>
+<!-- APP -->
+<div id="app" class="hidden">
+<div class="card">
+<h2 id="title">Meine Liste</h2>
+<div class="row">
+<input id="todoInput" placeholder="Neues Todo">
+<button onclick="addTodo()">+</button>
+</div>
 
-            <div class="color-preview" id="colorPreview">
-                <svg width="80" height="80" viewBox="0 0 80 80">
-                    <circle cx="40" cy="40" r="35" fill="currentColor"/>
-                    <circle cx="28" cy="32" r="3" fill="white"/>
-                    <circle cx="28" cy="40" r="3" fill="white"/>
-                    <circle cx="28" cy="48" r="3" fill="white"/>
-                    <rect x="38" y="29" width="22" height="3" rx="1.5" fill="white"/>
-                    <rect x="38" y="37" width="22" height="3" rx="1.5" fill="white"/>
-                    <rect x="38" y="45" width="22" height="3" rx="1.5" fill="white"/>
-                </svg>
-            </div>
+<div class="row">
+<button onclick="setFilter(null)">Alle</button>
+<button onclick="setFilter('open')">Offen</button>
+<button onclick="setFilter('done')">Erledigt</button>
+</div>
 
-            <input type="text" id="listNameInput" placeholder="Name der Liste">
+<ul id="list"></ul>
 
-            <div class="list-type-selector">
-                <span>Listentyp</span>
-                <select id="listTypeSelect">
-                    <option value="todo">Todo-Liste</option>
-                    <option value="shopping">Einkaufsliste</option>
-                </select>
-            </div>
+<p id="counter"></p>
 
-            <label class="color-label">Button-Farbe:</label>
-            <div class="color-options">
-                <div class="color-circle" data-color="#ff3b30" style="background:#ff3b30;"></div>
-                <div class="color-circle" data-color="#ff9500" style="background:#ff9500;"></div>
-                <div class="color-circle" data-color="#ffcc00" style="background:#ffcc00;"></div>
-                <div class="color-circle" data-color="#34c759" style="background:#34c759;"></div>
-                <div class="color-circle" data-color="#5ac8fa" style="background:#5ac8fa;"></div>
-                <div class="color-circle selected" data-color="#0a84ff" style="background:#0a84ff;"></div>
-                <div class="color-circle" data-color="#5856d6" style="background:#5856d6;"></div>
-                <div class="color-circle" data-color="#ff2d55" style="background:#ff2d55;"></div>
-                <div class="color-circle" data-color="#bf5af2" style="background:#bf5af2;"></div>
-                <div class="color-circle" data-color="#c7a56b" style="background:#c7a56b;"></div>
-                <div class="color-circle" data-color="#8e8e93" style="background:#8e8e93;"></div>
-                <div class="color-circle" data-color="#f5c7be" style="background:#f5c7be;"></div>
-            </div>
-        </div>
-    </div>
+<button onclick="logout()">Logout</button>
+</div>
+</div>
 
-    <script src="JavaScript/script.js"></script>
+</div>
+
+<script>
+// 🔥 CONFIG EINSETZEN
+const firebaseConfig = {
+  apiKey: "DEIN_KEY",
+  authDomain: "DEIN_DOMAIN",
+  projectId: "DEIN_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let userId = null;
+let todos = [];
+let filter = null;
+
+// AUTH
+function register(){ auth.createUserWithEmailAndPassword(email.value, password.value); }
+function loginEmail(){ auth.signInWithEmailAndPassword(email.value, password.value); }
+function loginGoogle(){ auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+function loginApple(){ auth.signInWithPopup(new firebase.auth.OAuthProvider('apple.com')); }
+function logout(){ auth.signOut(); }
+
+// STATE
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    userId = user.uid;
+    login.classList.add('hidden');
+    app.classList.remove('hidden');
+    loadTodos();
+  } else {
+    login.classList.remove('hidden');
+    app.classList.add('hidden');
+  }
+});
+
+// TODOS
+function addTodo(){
+  const text = todoInput.value.trim();
+  if(!text) return;
+  todos.push({text, done:false});
+  saveTodos();
+  todoInput.value='';
+}
+
+function toggle(i){
+  todos[i].done = !todos[i].done;
+  saveTodos();
+}
+
+function del(i){
+  todos.splice(i,1);
+  saveTodos();
+}
+
+function saveTodos(){
+  db.collection('users').doc(userId).set({todos});
+}
+
+function loadTodos(){
+  db.collection('users').doc(userId)
+    .onSnapshot(doc=>{
+      todos = doc.data()?.todos || [];
+      render();
+    });
+}
+
+function setFilter(f){ filter=f; render(); }
+
+function render(){
+  list.innerHTML='';
+
+  let filtered = todos;
+  if(filter==='open') filtered = todos.filter(t=>!t.done);
+  if(filter==='done') filtered = todos.filter(t=>t.done);
+
+  filtered.forEach((t,i)=>{
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span class="${t.done?'done':''}" onclick="toggle(${i})">${t.text}</span>
+      <button onclick="del(${i})">X</button>
+    `;
+    list.appendChild(li);
+  });
+
+  const done = todos.filter(t=>t.done).length;
+  counter.textContent = `${done} von ${todos.length} erledigt`;
+}
+</script>
+
 </body>
 </html>
