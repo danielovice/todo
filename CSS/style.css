@@ -34,7 +34,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   NAVBAR (IMMER OBEN)
+   NAVBAR
 -------------------------------------------- */
 .navbar {
     display: flex;
@@ -153,7 +153,7 @@ button.press-effect {
 }
 
 /* -------------------------------------------
-   APP Container (SCROLLBAR HIER)
+   APP Container
 -------------------------------------------- */
 .app {
     flex: 1;
@@ -167,6 +167,7 @@ button.press-effect {
     box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7);
     margin: 15px auto;
     touch-action: pan-y;
+    position: relative;
 }
 
 .app::-webkit-scrollbar {
@@ -205,6 +206,7 @@ h1, #listTitle {
     display: flex;
     gap: 10px;
     margin-bottom: 12px;
+    position: relative;
 }
 
 input[type="text"] {
@@ -220,6 +222,46 @@ input[type="text"] {
 
 input[type="text"]::placeholder {
     color: #666;
+}
+
+/* 🔥 Autocomplete Liste */
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 80px;
+    background: #1c1c1e;
+    border-radius: 12px;
+    margin-top: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.autocomplete-list.show {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #2a2a2e;
+    transition: background 0.15s;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover {
+    background: #2a2a2e;
+}
+
+.autocomplete-item .match {
+    color: #0a84ff;
+    font-weight: 600;
 }
 
 /* -------------------------------------------
@@ -353,6 +395,12 @@ li span, li input.edit-input {
     display: inline-block;
 }
 
+/* 🔥 Zahlen in blau für Einkaufsliste */
+li span .number {
+    color: #0a84ff;
+    font-weight: 600;
+}
+
 #listTitle input.edit-input {
     text-align: center;
     font-size: 32px;
@@ -408,7 +456,7 @@ li button.delete:active {
 }
 
 /* -------------------------------------------
-   FOOTER (Nur am Desktop)
+   FOOTER
 -------------------------------------------- */
 footer {
     text-align: center;
@@ -609,7 +657,7 @@ footer {
     text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
-/* Kategorien - OHNE Ordner Symbol */
+/* Kategorien */
 .category-header {
     background: #2c2c2e;
     padding: 10px 16px;
@@ -623,7 +671,7 @@ footer {
     gap: 8px;
 }
 
-/* MOBILE - Kein Footer */
+/* MOBILE */
 @media (max-width: 600px) {
     .app { margin: 10px; padding: 16px; border-radius: 20px; }
     .input-area { flex-direction: column; gap: 8px; }
@@ -643,7 +691,6 @@ footer {
         box-shadow: 0 2px 0 #0060df !important;
     }
     
-    /* 🔥 Footer auf Mobile ausblenden */
     footer {
         display: none;
     }
