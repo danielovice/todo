@@ -22,10 +22,11 @@ const closeModalBtn = document.getElementById("closeModalBtn");
 const colorPreview = document.getElementById("colorPreview");
 
 let lists = {};
-let listOrder = []; // 🔥 Für Listen-Reihenfolge
+let listOrder = [];
 let currentList = "Meine Liste";
-let filter = null;
+let filter = "alle";
 let selectedColor = "#0a84ff";
+let todos = [];
 
 /* -------------------------------
    LOCAL STORAGE LADEN
@@ -33,6 +34,7 @@ let selectedColor = "#0a84ff";
 const savedLists = localStorage.getItem("todoLists");
 const savedListOrder = localStorage.getItem("listOrder");
 const savedCurrentList = localStorage.getItem("todoCurrentList");
+const savedFilter = localStorage.getItem("todoFilter");
 
 try {
     lists = savedLists ? JSON.parse(savedLists) : { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
@@ -40,14 +42,12 @@ try {
     lists = { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
 }
 
-// Listen-Reihenfolge laden
 if (savedListOrder) {
     listOrder = JSON.parse(savedListOrder);
 } else {
     listOrder = Object.keys(lists);
 }
 
-// Alte Struktur migrieren
 for (const key in lists) {
     if (!lists[key].todos && Array.isArray(lists[key])) {
         lists[key] = { todos: lists[key], type: "todo", color: "#0a84ff" };
@@ -63,30 +63,30 @@ if (savedCurrentList && lists[savedCurrentList]) {
     currentList = listOrder[0] || "Meine Liste";
 }
 
+if (savedFilter) {
+    filter = savedFilter;
+}
+
 listTitle.textContent = currentList;
 if (lists[currentList]) {
     const listColor = lists[currentList].color || "#0a84ff";
     updateButtonColors(listColor);
-    let todos = lists[currentList].todos || [];
+    todos = lists[currentList].todos || [];
 }
 
 /* -------------------------------
    BUTTON FARBEN AKTUALISIEREN
 --------------------------------- */
 function updateButtonColors(color) {
-    // 🔥 "+" Button (addListBtn)
     addListBtn.style.background = color;
     addListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
-    // 🔥 "Hinzufügen" Button (addBtn)
     addBtn.style.background = color;
     addBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
-    // 🔥 Menü Button (menuBtn)
     menuBtn.style.background = color;
     menuBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
-    // 🔥 Filter Buttons (wenn nicht aktiv)
     filterBtns.forEach(btn => {
         if (!btn.classList.contains('active')) {
             btn.style.background = color;
@@ -189,6 +189,7 @@ function saveLists() {
     localStorage.setItem("todoLists", JSON.stringify(lists));
     localStorage.setItem("listOrder", JSON.stringify(listOrder));
     localStorage.setItem("todoCurrentList", currentList);
+    localStorage.setItem("todoFilter", filter);
 }
 
 /* -------------------------------
@@ -320,6 +321,7 @@ function render() {
 
     updateCounter();
     checkScroll();
+    updateFilterButtons();
 }
 
 function createTodoElement(todo, index) {
@@ -366,6 +368,19 @@ function createTodoElement(todo, index) {
 }
 
 /* -------------------------------
+   FILTER BUTTONS UPDATE
+--------------------------------- */
+function updateFilterButtons() {
+    filterBtns.forEach(btn => {
+        if (btn.dataset.filter === filter) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    });
+}
+
+/* -------------------------------
    TODOS HINZUFÜGEN
 --------------------------------- */
 function addTodo() {
@@ -407,8 +422,8 @@ list.addEventListener("click", e => {
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
         const value = btn.dataset.filter;
-        if (filter === value) { filter = null; btn.classList.remove("active"); }
-        else { filter = value; filterBtns.forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
+        filter = value;
+        saveLists();
         render();
     });
 });
@@ -499,7 +514,7 @@ function handleTouchEnd() {
 }
 
 /* -------------------------------
-   🔥 LISTEN MENÜ RENDER (MIT DRAG & DROP)
+   LISTEN MENÜ RENDER (MIT DRAG & DROP)
 --------------------------------- */
 let listDragItem = null;
 let listTouchStartY = 0;
@@ -509,7 +524,7 @@ let listLongPressTimer = null;
 function renderTabs() {
     listTabs.innerHTML = "";
     
-    listOrder.forEach((name, orderIndex) => {
+    listOrder.forEach((name) => {
         if (!lists[name]) return;
         
         const wrapper = document.createElement("div");
@@ -523,9 +538,8 @@ function renderTabs() {
         btn.style.background = listColor;
         btn.style.boxShadow = `0 2px 0 ${adjustColor(listColor, -20)}`;
         
-        // 🔥 Kurz drücken = Liste auswählen
         btn.onclick = () => {
-            if (listHasMoved) return; // Wenn verschoben, nicht auswählen
+            if (listHasMoved) return;
             saveLists();
             currentList = name;
             todos = lists[name].todos || [];
@@ -542,6 +556,9 @@ function renderTabs() {
                 listTouchStartY = e.touches[0].clientY;
                 listHasMoved = false;
                 btn.classList.add("dragging");
+                // 🔥 Scrollen verhindern während Drag
+                document.body.style.overflow = 'hidden';
+                document.body.style.touchAction = 'none';
             }, 500);
         });
         
@@ -551,9 +568,9 @@ function renderTabs() {
             const moveY = Math.abs(touch.clientY - listTouchStartY);
             if (moveY > 10) {
                 listHasMoved = true;
-                e.preventDefault();
+                e.preventDefault(); // 🔥 Scrollen verhindern
+                e.stopPropagation();
                 
-                // Elemente im Menü neu anordnen
                 const items = Array.from(listTabs.querySelectorAll(".list-item"));
                 const currentRect = listDragItem.closest(".list-item").getBoundingClientRect();
                 const touchY = touch.clientY;
@@ -581,16 +598,31 @@ function renderTabs() {
         
         btn.addEventListener("touchend", () => {
             clearTimeout(listLongPressTimer);
+            // 🔥 Scrollen wieder erlauben
+            document.body.style.overflow = '';
+            document.body.style.touchAction = 'pan-y';
+            
             if (listDragItem) {
                 btn.classList.remove("dragging");
                 
                 if (listHasMoved) {
-                    // 🔥 Neue Reihenfolge speichern
                     const newOrder = Array.from(listTabs.querySelectorAll(".list-item")).map(item => item.dataset.name);
                     listOrder = newOrder;
                     localStorage.setItem("listOrder", JSON.stringify(listOrder));
                 }
                 
+                listDragItem = null;
+                listHasMoved = false;
+            }
+        });
+        
+        // 🔥 Touch cancel auch behandeln
+        btn.addEventListener("touchcancel", () => {
+            clearTimeout(listLongPressTimer);
+            document.body.style.overflow = '';
+            document.body.style.touchAction = 'pan-y';
+            if (listDragItem) {
+                btn.classList.remove("dragging");
                 listDragItem = null;
                 listHasMoved = false;
             }
@@ -637,11 +669,9 @@ closeModalBtn.addEventListener("click", () => {
     addListModal.style.display = "none";
 });
 
-// 🔥 Wenn Listentyp geändert wird - Einkaufsliste = GRÜN!
 listTypeSelect.addEventListener("change", () => {
     if (listTypeSelect.value === "shopping") {
         listNameInput.value = "Einkaufsliste";
-        // 🔥 Automatisch grüne Farbe auswählen
         selectedColor = "#34c759";
         colorCircles.forEach(c => c.classList.remove("selected"));
         const greenCircle = document.querySelector('.color-circle[data-color="#34c759"]');
