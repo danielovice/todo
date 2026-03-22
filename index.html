@@ -9,41 +9,33 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111111">
     
-    <!-- 🔥 Firebase SDK -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-    <!-- 🔥 LOGIN MODAL -->
+    <!-- LOGIN MODAL -->
     <div id="authModal" class="modal">
         <div class="modal-content auth-modal">
             <h2 id="authTitle">Anmelden</h2>
-            
             <input type="text" id="authUsername" placeholder="Benutzername">
-            
             <div class="password-container">
                 <input type="password" id="authPassword" placeholder="Passwort">
                 <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
             </div>
-            
             <div class="remember-me">
                 <input type="checkbox" id="rememberMe">
                 <label for="rememberMe">Angemeldet bleiben</label>
             </div>
-            
             <button id="authSubmitBtn" class="auth-btn">Anmelden</button>
-            
-            <p class="auth-switch">
-                Noch kein Konto? <span id="authToggle" onclick="toggleAuthMode()">Registrieren</span>
-            </p>
-            
+            <p class="auth-switch">Noch kein Konto? <span id="authToggle" onclick="toggleAuthMode()">Registrieren</span></p>
             <p id="authError" class="auth-error"></p>
         </div>
     </div>
 
-    <!-- Haupt-App -->
+    <!-- HAUPT-APP -->
     <div id="mainApp" style="display: none;">
         <div class="navbar">
             <div class="logo">TODO</div>
@@ -53,7 +45,7 @@
                     <button id="menuBtn">☰</button>
                     <div id="menuDropdown">
                         <div id="listTabs"></div>
-                        <button id="logoutBtn" style="background: #ff453a; margin-top: 10px; font-size: 13px;">Abmelden</button>
+                        <button id="logoutBtn" style="background: #ff453a; margin-top: 10px;">Abmelden</button>
                     </div>
                 </div>
             </div>
@@ -65,10 +57,8 @@
                 <input id="todoInput" type="text" placeholder="Neues Todo...">
                 <button id="addBtn">Hinzufügen</button>
             </div>
-            
-            <div id="autocompleteList" class="autocomplete-list"></div>
-            
             <div class="filters">
+                <button class="filter-btn active" data-filter="alle">Alle</button>
                 <button class="filter-btn" data-filter="offen">Offen</button>
                 <button class="filter-btn" data-filter="erledigt">Erledigt</button>
             </div>
@@ -76,10 +66,7 @@
             <ul id="todoList"></ul>
         </div>
 
-        <footer>
-            Abschlussprojekt 2026 Beigans Daniel <br>
-            HTBLA Traun
-        </footer>
+        <footer>Abschlussprojekt 2026 Beigans Daniel<br>HTBLA Traun</footer>
 
         <!-- Listen Modal -->
         <div id="addListModal" class="modal">
@@ -89,7 +76,6 @@
                     <h2>Neue Liste</h2>
                     <button class="modal-save" id="confirmAddListBtn">✓</button>
                 </div>
-
                 <div class="color-preview" id="colorPreview">
                     <svg width="80" height="80" viewBox="0 0 80 80">
                         <circle cx="40" cy="40" r="35" fill="currentColor"/>
@@ -101,9 +87,7 @@
                         <rect x="38" y="45" width="22" height="3" rx="1.5" fill="white"/>
                     </svg>
                 </div>
-
                 <input type="text" id="listNameInput" placeholder="Name der Liste">
-
                 <div class="list-type-selector">
                     <span>Listentyp</span>
                     <select id="listTypeSelect">
@@ -111,7 +95,6 @@
                         <option value="shopping">Einkaufsliste</option>
                     </select>
                 </div>
-
                 <label class="color-label">Button-Farbe:</label>
                 <div class="color-options">
                     <div class="color-circle" data-color="#ff3b30" style="background:#ff3b30;"></div>
