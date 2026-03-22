@@ -8,14 +8,21 @@
     <link rel="icon" type="image/png" href="pics/Screenshot 2026-03-12 185322.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111111">
+    
+    <!-- 🔥 Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
     <!-- 🔥 LOGIN MODAL -->
     <div id="authModal" class="modal">
         <div class="modal-content auth-modal">
             <h2 id="authTitle">Anmelden</h2>
             
             <input type="text" id="authUsername" placeholder="Benutzername">
+            
             <div class="password-container">
                 <input type="password" id="authPassword" placeholder="Passwort">
                 <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
@@ -46,7 +53,7 @@
                     <button id="menuBtn">☰</button>
                     <div id="menuDropdown">
                         <div id="listTabs"></div>
-                        <button id="logoutBtn" style="background: #ff453a; margin-top: 10px;">Abmelden</button>
+                        <button id="logoutBtn" style="background: #ff453a; margin-top: 10px; font-size: 13px;">Abmelden</button>
                     </div>
                 </div>
             </div>
@@ -124,11 +131,6 @@
         </div>
     </div>
 
-    <!-- 🔥 Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
     <script src="JavaScript/script.js"></script>
 </body>
 </html>
