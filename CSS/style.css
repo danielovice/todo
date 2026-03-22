@@ -133,11 +133,21 @@ button:active {
     color: white;
     border-radius: 10px;
     box-shadow: 0 2px 0 #0055cc;
+    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
 }
 
 .list-item button:first-child:active {
     transform: translateY(1px);
     box-shadow: none;
+}
+
+/* 🔥 Drag-Feedback für Listen im Menü */
+.list-item button:first-child.dragging {
+    opacity: 0.95;
+    transform: scale(1.04);
+    box-shadow: 0 15px 40px rgba(10, 132, 255, 0.4);
+    z-index: 10;
+    border: 2px solid #0a84ff;
 }
 
 .list-item button:last-child {
@@ -487,9 +497,11 @@ footer {
     box-shadow: 0 2px 0 #0060df;
 }
 
+/* 🔥 Icon ZENTRIEREN */
 .color-preview {
     display: flex;
     justify-content: center;
+    align-items: center;
     padding: 10px;
     color: #0a84ff;
     transition: color 0.3s;
