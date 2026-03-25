@@ -9,20 +9,17 @@
 
 html {
     height: 100%;
-    overflow: hidden;
+    background: #111;
 }
 
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #000;
+    background: #111;
     color: white;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
     touch-action: pan-y;
-    position: relative;
 }
 
 input, textarea, [contenteditable], .edit-input {
@@ -39,8 +36,15 @@ input, textarea, [contenteditable], .edit-input {
 -------------------------------------------- */
 .auth-modal {
     display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: #000;
     z-index: 2000;
+    justify-content: center;
+    align-items: center;
 }
 
 .auth-modal.show {
@@ -208,7 +212,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   NAVBAR
+   NAVBAR (NICHT STICKY, GRAU)
 -------------------------------------------- */
 .navbar {
     display: flex;
@@ -217,8 +221,7 @@ input, textarea, [contenteditable], .edit-input {
     background: #111;
     padding: 12px 20px;
     border-bottom: 1px solid #222;
-    flex-shrink: 0;
-    z-index: 50;
+    position: relative;
 }
 
 .logo {
@@ -331,51 +334,18 @@ button.press-effect {
 }
 
 /* -------------------------------------------
-   CONTENT WRAPPER (NEU: Grauer Hintergrund)
--------------------------------------------- */
-.content-wrapper {
-    flex: 1;
-    background: #111; /* Grauer Hintergrund */
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    display: flex;
-    flex-direction: column;
-}
-
-/* -------------------------------------------
-   APP Container (Nur so groß wie nötig)
+   APP Container (NUR SO GROSS WIE INHALT)
 -------------------------------------------- */
 .app {
     width: 92%;
     max-width: 520px;
-    background: #111; /* Gleiche Farbe wie wrapper */
+    background: #111;
     border-radius: 22px;
     padding: 18px;
     box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7);
     margin: 15px auto;
     touch-action: pan-y;
     position: relative;
-    /* Kein flex: 1 mehr! */
-    flex-shrink: 0;
-}
-
-.app::-webkit-scrollbar {
-    width: 6px;
-}
-
-.app::-webkit-scrollbar-track {
-    background: #111;
-    border-radius: 3px;
-}
-
-.app::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 3px;
-}
-
-.app::-webkit-scrollbar-thumb:hover {
-    background: #444;
 }
 
 h1, #listTitle {
@@ -677,7 +647,7 @@ li button.delete:active {
 }
 
 /* -------------------------------------------
-   FOOTER (Im Content-Wrapper)
+   FOOTER (GRAU, AUF MOBILE AUSGEBLENDET)
 -------------------------------------------- */
 footer {
     text-align: center;
@@ -686,8 +656,6 @@ footer {
     background: #111;
     padding: 18px 15px;
     border-top: 1px solid #222;
-    flex-shrink: 0;
-    margin-top: auto; /* Drückt es nach unten wenn Platz, aber nicht fix */
 }
 
 /* -------------------------------------------
@@ -861,9 +829,10 @@ footer {
     transform: scale(0.9);
 }
 
+/* DÜNNERER WEISSER RING */
 .color-circle.selected {
     border-color: white;
-    box-shadow: 0 0 0 3px currentColor;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
 }
 
 /* Kategorien */
@@ -884,8 +853,16 @@ footer {
    MOBILE
 -------------------------------------------- */
 @media (max-width: 600px) {
+    body {
+        /* Grauer Hintergrund bis ganz oben (unter Status Bar) */
+        background: #111;
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+    }
+    
     .navbar {
         position: relative;
+        background: #111;
     }
     
     #menuDropdown {
@@ -894,14 +871,8 @@ footer {
         max-width: calc(100vw - 20px);
     }
     
-    .content-wrapper {
-        /* Wichtig für iOS: Grauer Hintergrund bis ganz oben */
-        min-height: 100vh;
-        min-height: -webkit-fill-available;
-    }
-    
     .app { 
-        margin: 10px; 
+        margin: 10px auto; 
         padding: 16px; 
         border-radius: 20px;
         width: calc(100% - 20px);
@@ -962,12 +933,18 @@ footer {
         height: 36px; 
     }
     
+    /* DÜNNERER RING AUF MOBILE */
+    .color-circle.selected {
+        box-shadow: 0 0 0 2px white, 0 0 0 3px currentColor;
+    }
+    
     button:active {
         transform: translateY(2px) !important;
         box-shadow: 0 2px 0 #0060df !important;
     }
     
+    /* FOOTER AUF MOBILE AUSGEBLENDET */
     footer {
-        padding: 12px 15px;
+        display: none;
     }
 }
