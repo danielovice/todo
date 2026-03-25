@@ -208,7 +208,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   NAVBAR (FIX: Buttons nebeneinander)
+   NAVBAR
 -------------------------------------------- */
 .navbar {
     display: flex;
@@ -227,7 +227,6 @@ input, textarea, [contenteditable], .edit-input {
     letter-spacing: -0.3px;
 }
 
-/* FIX: Buttons nebeneinander */
 .nav-buttons {
     display: flex;
     flex-direction: row;
@@ -236,7 +235,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   MENÜ DROPDOWN (Außerhalb Navbar)
+   MENÜ DROPDOWN
 -------------------------------------------- */
 #menuDropdown {
     position: absolute;
@@ -332,22 +331,33 @@ button.press-effect {
 }
 
 /* -------------------------------------------
-   APP Container (FIX: Scroll)
+   CONTENT WRAPPER (NEU: Grauer Hintergrund)
 -------------------------------------------- */
-.app {
+.content-wrapper {
     flex: 1;
+    background: #111; /* Grauer Hintergrund */
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+}
+
+/* -------------------------------------------
+   APP Container (Nur so groß wie nötig)
+-------------------------------------------- */
+.app {
     width: 92%;
     max-width: 520px;
-    background: #111;
+    background: #111; /* Gleiche Farbe wie wrapper */
     border-radius: 22px;
     padding: 18px;
     box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7);
     margin: 15px auto;
     touch-action: pan-y;
     position: relative;
-    -webkit-overflow-scrolling: touch; /* Wichtig für iOS */
+    /* Kein flex: 1 mehr! */
+    flex-shrink: 0;
 }
 
 .app::-webkit-scrollbar {
@@ -667,7 +677,7 @@ li button.delete:active {
 }
 
 /* -------------------------------------------
-   FOOTER
+   FOOTER (Im Content-Wrapper)
 -------------------------------------------- */
 footer {
     text-align: center;
@@ -677,6 +687,7 @@ footer {
     padding: 18px 15px;
     border-top: 1px solid #222;
     flex-shrink: 0;
+    margin-top: auto; /* Drückt es nach unten wenn Platz, aber nicht fix */
 }
 
 /* -------------------------------------------
@@ -883,13 +894,17 @@ footer {
         max-width: calc(100vw - 20px);
     }
     
+    .content-wrapper {
+        /* Wichtig für iOS: Grauer Hintergrund bis ganz oben */
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+    }
+    
     .app { 
         margin: 10px; 
         padding: 16px; 
         border-radius: 20px;
-        /* Wichtig für iOS Scroll */
-        -webkit-overflow-scrolling: touch;
-        overflow-y: scroll;
+        width: calc(100% - 20px);
     }
     
     .input-area { 
@@ -953,6 +968,6 @@ footer {
     }
     
     footer {
-        display: none;
+        padding: 12px 15px;
     }
 }
