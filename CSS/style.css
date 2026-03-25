@@ -20,6 +20,7 @@ body {
     min-height: 100vh;
     min-height: -webkit-fill-available;
     touch-action: pan-y;
+    /* Wichtig: Kein overflow hidden auf body! */
 }
 
 input, textarea, [contenteditable], .edit-input {
@@ -29,6 +30,17 @@ input, textarea, [contenteditable], .edit-input {
     -ms-user-select: text;
     user-select: text;
     touch-action: auto;
+}
+
+/* -------------------------------------------
+   PAGE CONTAINER (FLEXBOX FÜR STICKY FOOTER)
+-------------------------------------------- */
+.page-container {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
+    background: #111;
 }
 
 /* -------------------------------------------
@@ -212,7 +224,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   NAVBAR (NICHT STICKY, GRAU)
+   NAVBAR
 -------------------------------------------- */
 .navbar {
     display: flex;
@@ -222,6 +234,7 @@ input, textarea, [contenteditable], .edit-input {
     padding: 12px 20px;
     border-bottom: 1px solid #222;
     position: relative;
+    flex-shrink: 0;
 }
 
 .logo {
@@ -326,6 +339,10 @@ button {
     -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    /* Wichtig für Klicks */
+    pointer-events: auto;
+    position: relative;
+    z-index: 10;
 }
 
 button.press-effect {
@@ -334,7 +351,7 @@ button.press-effect {
 }
 
 /* -------------------------------------------
-   APP Container (NUR SO GROSS WIE INHALT)
+   APP Container
 -------------------------------------------- */
 .app {
     width: 92%;
@@ -346,6 +363,7 @@ button.press-effect {
     margin: 15px auto;
     touch-action: pan-y;
     position: relative;
+    flex: 1 0 auto;
 }
 
 h1, #listTitle {
@@ -647,7 +665,7 @@ li button.delete:active {
 }
 
 /* -------------------------------------------
-   FOOTER (GRAU, AUF MOBILE AUSGEBLENDET)
+   FOOTER (IMMER UNTEN AUF PC)
 -------------------------------------------- */
 footer {
     text-align: center;
@@ -656,6 +674,8 @@ footer {
     background: #111;
     padding: 18px 15px;
     border-top: 1px solid #222;
+    margin-top: auto; /* Drückt Footer nach unten */
+    flex-shrink: 0;
 }
 
 /* -------------------------------------------
@@ -853,16 +873,26 @@ footer {
    MOBILE
 -------------------------------------------- */
 @media (max-width: 600px) {
-    body {
-        /* Grauer Hintergrund bis ganz oben (unter Status Bar) */
-        background: #111;
-        min-height: 100vh;
-        min-height: -webkit-fill-available;
+    html, body {
+        /* Verhindert Bounce-Scrolling auf iOS */
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .page-container {
+        height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Verhindert Overscroll */
+        overscroll-behavior: none;
     }
     
     .navbar {
         position: relative;
         background: #111;
+        flex-shrink: 0;
     }
     
     #menuDropdown {
@@ -876,6 +906,7 @@ footer {
         padding: 16px; 
         border-radius: 20px;
         width: calc(100% - 20px);
+        flex: 1 0 auto;
     }
     
     .input-area { 
