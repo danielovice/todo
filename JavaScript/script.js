@@ -1,9 +1,29 @@
-/* -------------------------------   KONFIGURATION   ------------------------------- */
 const API_URL = 'http://10.0.0.27:3000';
-const userId = localStorage.getItem('todo_user_id') || 'user_' + Math.random().toString(36).substr(2, 9);
-localStorage.setItem('todo_user_id', userId);
 
-/* -------------------------------   VARIABLEN   ------------------------------- */
+// Auth Variablen
+let token = localStorage.getItem('todo_token');
+let currentUser = localStorage.getItem('todo_user');
+let isRegistering = false;
+
+// App Variablen
+let lists = {};
+let listOrder = [];
+let currentList = "";
+let todos = [];
+let filter = null;
+let selectedColor = "#0a84ff";
+let currentListColor = "#0a84ff";
+
+// DOM Elemente
+const authModal = document.getElementById("authModal");
+const authTitle = document.getElementById("authTitle");
+const authUsername = document.getElementById("authUsername");
+const authPassword = document.getElementById("authPassword");
+const authSubmitBtn = document.getElementById("authSubmitBtn");
+const authSwitchBtn = document.getElementById("authSwitchBtn");
+const authError = document.getElementById("authError");
+const logoutBtn = document.getElementById("logoutBtn");
+
 const input = document.getElementById("todoInput");
 const addBtn = document.getElementById("addBtn");
 const list = document.getElementById("todoList");
@@ -16,7 +36,6 @@ const menuDropdown = document.getElementById("menuDropdown");
 const addListBtn = document.getElementById("addListBtn");
 const autocompleteList = document.getElementById("autocompleteList");
 
-// Modal Elemente
 const addListModal = document.getElementById("addListModal");
 const listNameInput = document.getElementById("listNameInput");
 const listTypeSelect = document.getElementById("listTypeSelect");
@@ -25,92 +44,187 @@ const confirmAddListBtn = document.getElementById("confirmAddListBtn");
 const closeModalBtn = document.getElementById("closeModalBtn");
 const colorPreview = document.getElementById("colorPreview");
 
-// Initialisiere mit Standardwerten SOFORT
-let lists = { 
-    "Meine Liste": { 
-        todos: [], 
-        type: "todo", 
-        color: "#0a84ff" 
-    } 
-};
-let listOrder = ["Meine Liste"];
-let currentList = "Meine Liste";
-let filter = null;
-let selectedColor = "#0a84ff";
-let todos = lists["Meine Liste"].todos;
-let currentListColor = "#0a84ff";
-let isInitialized = false;
+/* -------------------------------   AUTH   ------------------------------- */
 
-/* -------------------------------   SERVER API   ------------------------------- */
-async function loadFromServer() {
+function initAuth() {
+    // Event Listeners
+    authSubmitBtn.addEventListener("click", handleAuth);
+    authPassword.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") handleAuth();
+    });
+    authUsername.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") authPassword.focus();
+    });
+    
+    authSwitchBtn.addEventListener("click", () => {
+        isRegistering = !isRegistering;
+        updateAuthUI();
+    });
+    
+    logoutBtn.addEventListener("click", logout);
+    
+    // Prüfen ob eingeloggt
+    if (token && currentUser) {
+        loadData();
+    } else {
+        showAuth();
+    }
+}
+
+function updateAuthUI() {
+    if (isRegistering) {
+        authTitle.textContent = "Registrieren";
+        authSubmitBtn.textContent = "Registrieren";
+        authSwitchBtn.textContent = "Bereits ein Konto? Anmelden";
+    } else {
+        authTitle.textContent = "Anmelden";
+        authSubmitBtn.textContent = "Anmelden";
+        authSwitchBtn.textContent = "Noch kein Konto? Registrieren";
+    }
+    authError.textContent = "";
+}
+
+function showAuth() {
+    authModal.classList.add("show");
+    updateAuthUI();
+}
+
+async function handleAuth() {
+    const username = authUsername.value.trim();
+    const password = authPassword.value;
+    
+    if (!username || !password) {
+        authError.textContent = "Bitte Name und Passwort eingeben";
+        return;
+    }
+    
+    if (password.length < 4) {
+        authError.textContent = "Passwort mindestens 4 Zeichen";
+        return;
+    }
+    
+    authSubmitBtn.disabled = true;
+    authError.textContent = "";
+    
+    const endpoint = isRegistering ? '/register' : '/login';
+    
     try {
-        const response = await fetch(`${API_URL}/todos/${userId}`);
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        
         const data = await response.json();
         
-        if (data && data.lists) {
-            lists = data.lists;
-            listOrder = data.listOrder || Object.keys(lists);
-            currentList = data.currentList || listOrder[0] || "Meine Liste";
-            filter = data.filter || null;
-            todos = lists[currentList]?.todos || [];
-        } else {
-            // Erstmalig - speichere Standardwerte
-            await saveToServer();
+        if (!response.ok) {
+            authError.textContent = data.error || "Fehler";
+            authSubmitBtn.disabled = false;
+            return;
         }
         
-        isInitialized = true;
+        if (isRegistering) {
+            // Nach Registrierung zum Login wechseln
+            isRegistering = false;
+            authPassword.value = "";
+            updateAuthUI();
+            authError.textContent = "Account erstellt! Bitte anmelden.";
+            authSubmitBtn.disabled = false;
+            return;
+        }
+        
+        // Login erfolgreich
+        token = data.token;
+        currentUser = data.username;
+        localStorage.setItem('todo_token', token);
+        localStorage.setItem('todo_user', currentUser);
+        
+        authModal.classList.remove("show");
+        authUsername.value = "";
+        authPassword.value = "";
+        authSubmitBtn.disabled = false;
+        
+        await loadData();
+        
+    } catch (e) {
+        authError.textContent = "Server nicht erreichbar";
+        authSubmitBtn.disabled = false;
+    }
+}
+
+async function logout() {
+    if (token) {
+        await fetch(`${API_URL}/logout`, {
+            method: 'POST',
+            headers: { 'Authorization': token }
+        });
+    }
+    
+    localStorage.removeItem('todo_token');
+    localStorage.removeItem('todo_user');
+    token = null;
+    currentUser = null;
+    
+    showAuth();
+}
+
+/* -------------------------------   DATEN   ------------------------------- */
+
+async function loadData() {
+    try {
+        const response = await fetch(`${API_URL}/data`, {
+            headers: { 'Authorization': token }
+        });
+        
+        if (!response.ok) {
+            logout();
+            return;
+        }
+        
+        const data = await response.json();
+        
+        lists = data.lists || { 
+            "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } 
+        };
+        listOrder = data.listOrder || ["Meine Liste"];
+        currentList = data.currentList || "Meine Liste";
+        todos = lists[currentList]?.todos || [];
+        
         listTitle.textContent = currentList;
         currentListColor = lists[currentList]?.color || "#0a84ff";
+        
         updateButtonColors(currentListColor);
         renderTabs();
         render();
         
-    } catch (err) {
-        console.error("Fehler beim Laden:", err);
-        // Offline-Modus mit localStorage
-        const backup = localStorage.getItem('todos_backup');
-        if (backup) {
-            const data = JSON.parse(backup);
-            lists = data.lists || lists;
-            listOrder = data.listOrder || listOrder;
-            currentList = data.currentList || currentList;
-            todos = data.todos || todos;
-        }
-        isInitialized = true;
-        renderTabs();
-        render();
+    } catch (e) {
+        console.error("Laden fehlgeschlagen:", e);
     }
 }
 
-async function saveToServer() {
-    if (!isInitialized) return;
-    
+async function saveData() {
     const data = {
         lists: lists,
         listOrder: listOrder,
-        currentList: currentList,
-        filter: filter,
-        lastUpdate: new Date().toISOString()
+        currentList: currentList
     };
     
     try {
-        await fetch(`${API_URL}/todos/${userId}`, {
+        await fetch(`${API_URL}/data`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': token 
+            },
             body: JSON.stringify(data)
         });
-        
-        // Backup in localStorage
-        localStorage.setItem('todos_backup', JSON.stringify(data));
-        
-    } catch (err) {
-        console.error("Speichern fehlgeschlagen:", err);
-        // Offline: nur localStorage
-        localStorage.setItem('todos_backup', JSON.stringify(data));
+    } catch (e) {
+        console.error("Speichern fehlgeschlagen:", e);
     }
 }
 
-/* -------------------------------   BUTTON FARBEN   ------------------------------- */
+/* -------------------------------   UI FUNKTIONEN   ------------------------------- */
+
 function updateButtonColors(color) {
     currentListColor = color;
     
@@ -157,7 +271,8 @@ function updateColorSelectionRing(selectedColor) {
     });
 }
 
-/* -------------------------------   MENÜ   ------------------------------- */
+/* -------------------------------   MENU   ------------------------------- */
+
 menuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     menuDropdown.classList.toggle("show");
@@ -170,6 +285,7 @@ document.addEventListener("click", (e) => {
 });
 
 /* -------------------------------   LISTENNAME BEARBEITEN   ------------------------------- */
+
 let lastTapTitle = 0;
 function handleTouchEditTitle() {
     const currentTime = new Date().getTime();
@@ -233,7 +349,7 @@ function startEditingListTitle() {
             listOrder.splice(idx, 1);
             listOrder.splice(idx, 0, newName);
             currentList = newName;
-            saveToServer();
+            saveData();
             renderTabs();
         }
         listTitle.textContent = currentList;
@@ -255,12 +371,14 @@ function startEditingListTitle() {
 }
 
 /* -------------------------------   COUNTER   ------------------------------- */
+
 function updateCounter() {
     const done = todos.filter(t => t.erledigt).length;
     counter.textContent = `${done} von ${todos.length} erledigt`;
 }
 
 /* -------------------------------   TODOS BEARBEITEN   ------------------------------- */
+
 let lastTapTodo = 0;
 function handleTouchEdit(span, index) {
     const currentTime = new Date().getTime();
@@ -283,7 +401,7 @@ function startEditing(spanElement, index) {
     const saveEdit = () => {
         const newText = inputField.value.trim();
         if (newText) todos[index].text = newText;
-        saveToServer();
+        saveData();
         render();
     };
 
@@ -293,6 +411,7 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------   KATEGORISIERUNG   ------------------------------- */
+
 const internalSubCategories = {
     'Milchprodukte': [
         'milch', 'käse', 'joghurt', 'butter', 'sahne', 'quark', 'obers', 'topfen',
@@ -407,6 +526,7 @@ function getFoodSortOrder(internalCategory) {
 }
 
 /* -------------------------------   AUTOCOMPLETE   ------------------------------- */
+
 function showAutocomplete(value) {
     const currentListData = lists[currentList];
     const isShoppingList = currentListData && currentListData.type === 'shopping';
@@ -478,6 +598,7 @@ document.addEventListener('click', (e) => {
 });
 
 /* -------------------------------   ZAHLEN HERVORHEBEN   ------------------------------- */
+
 function highlightNumbers(text) {
     const numberPattern = /^(\d+\.?\d*\s*(g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?\s*)/i;
     const match = text.match(numberPattern);
@@ -492,6 +613,7 @@ function highlightNumbers(text) {
 }
 
 /* -------------------------------   RENDERN   ------------------------------- */
+
 function render() {
     list.innerHTML = "";
     
@@ -612,6 +734,7 @@ function createTodoElement(todo, index, isShoppingList = false) {
 }
 
 /* -------------------------------   FILTER BUTTONS   ------------------------------- */
+
 function updateFilterButtons() {
     filterBtns.forEach(btn => {
         btn.classList.remove("active");
@@ -629,6 +752,7 @@ function updateFilterButtons() {
 }
 
 /* -------------------------------   TODOS HINZUFÜGEN   ------------------------------- */
+
 function addTodo() {
     const text = input.value.trim();
     if (!text) return;
@@ -641,7 +765,7 @@ function addTodo() {
     
     lists[currentList].todos = todos;
     
-    saveToServer();
+    saveData();
     render();
 }
 
@@ -651,6 +775,7 @@ input.addEventListener("keypress", e => {
 });
 
 /* -------------------------------   EVENT DELEGATION   ------------------------------- */
+
 list.addEventListener("click", e => {
     const target = e.target;
     const action = target.dataset.action;
@@ -663,19 +788,20 @@ list.addEventListener("click", e => {
     if (action === "toggle" && todos[idx]) {
         todos[idx].erledigt = !todos[idx].erledigt;
         lists[currentList].todos = todos;
-        saveToServer();
+        saveData();
         render();
     }
     
     if (action === "delete" && todos[idx]) {
         todos.splice(idx, 1);
         lists[currentList].todos = todos;
-        saveToServer();
+        saveData();
         render();
     }
 });
 
 /* -------------------------------   FILTER   ------------------------------- */
+
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
         const value = btn.dataset.filter;
@@ -684,12 +810,13 @@ filterBtns.forEach(btn => {
         } else {
             filter = value;
         }
-        saveToServer();
+        saveData();
         render();
     });
 });
 
 /* -------------------------------   DRAG & DROP   ------------------------------- */
+
 let draggedItemIndex = null;
 list.addEventListener("dragstart", e => {
     const handle = e.target.closest(".drag-handle");
@@ -725,7 +852,7 @@ list.addEventListener("drop", () => {
     if (newTodos.length === todos.length) { 
         todos = newTodos; 
         lists[currentList].todos = todos;
-        saveToServer(); 
+        saveData(); 
         render(); 
     } else render();
 });
@@ -741,6 +868,7 @@ function getDragAfterElement(container, y) {
 }
 
 /* -------------------------------   TOUCH DRAG   ------------------------------- */
+
 let touchItem = null, touchStartY = 0, touchStartX = 0, hasMoved = false;
 
 function handleTouchStart(e) {
@@ -782,7 +910,7 @@ function handleTouchEnd() {
         if (newTodos.length === todos.length) { 
             todos = newTodos; 
             lists[currentList].todos = todos;
-            saveToServer(); 
+            saveData(); 
             render(); 
         }
     }
@@ -790,6 +918,7 @@ function handleTouchEnd() {
 }
 
 /* -------------------------------   LISTEN MENÜ   ------------------------------- */
+
 let listDragItem = null;
 let listTouchStartY = 0;
 let listHasMoved = false;
@@ -820,7 +949,7 @@ function renderTabs() {
             updateButtonColors(listColor);
             renderTabs();
             render();
-            saveToServer();
+            saveData();
         };
         
         btn.addEventListener("touchstart", (e) => {
@@ -878,7 +1007,7 @@ function renderTabs() {
                 if (listHasMoved) {
                     const newOrder = Array.from(listTabs.querySelectorAll(".list-item")).map(item => item.dataset.name);
                     listOrder = newOrder;
-                    saveToServer();
+                    saveData();
                 }
                 
                 listDragItem = null;
@@ -921,7 +1050,7 @@ function renderTabs() {
             listTitle.textContent = currentList;
             const newColor = lists[currentList].color || "#0a84ff";
             updateButtonColors(newColor);
-            saveToServer();
+            saveData();
             renderTabs();
             render();
         };
@@ -933,6 +1062,7 @@ function renderTabs() {
 }
 
 /* -------------------------------   MODAL   ------------------------------- */
+
 addListBtn.addEventListener("click", () => {
     listNameInput.value = "";
     listTypeSelect.value = "todo";
@@ -1006,7 +1136,7 @@ confirmAddListBtn.addEventListener("click", () => {
     
     updateButtonColors(selectedColor);
     
-    saveToServer();
+    saveData();
     renderTabs();
     render();
     addListModal.style.display = "none";
@@ -1017,4 +1147,5 @@ addListModal.addEventListener("click", (e) => {
 });
 
 /* -------------------------------   START   ------------------------------- */
-loadFromServer();
+
+initAuth();
