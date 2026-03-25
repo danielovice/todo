@@ -984,6 +984,34 @@ footer {
     }
 }
 
+/* Auth Input ohne Suffix */
+.input-group input[type="text"] {
+    padding: 14px 16px;
+}
+
+/* Farbauswahl nur Rand, kein Häkchen */
+.color-circle.selected {
+    border-color: white;
+    box-shadow: 0 0 0 3px currentColor;
+}
+
+.color-circle.selected::after {
+    display: none;
+}
+
+/* Einkaufsliste - Durchgestrichen fix */
+li span.erledigt {
+    text-decoration: line-through !important;
+    color: #777;
+    opacity: 0.85;
+}
+
+li span.erledigt .quantity {
+    text-decoration: line-through !important;
+    color: #0a84ff;
+    opacity: 0.6;
+}
+
 /* Touch Highlight Farben werden dynamisch gesetzt */
 button[style*="background"]:active {
     /* Shadow wird via JS angepasst */
