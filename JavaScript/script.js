@@ -1296,6 +1296,37 @@ addListModal.addEventListener("click", (e) => {
     if (e.target === addListModal) addListModal.style.display = "none";
 });
 
+// In der updateButtonColors Funktion am Ende hinzufügen:
+function updateButtonColors(color) {
+    currentListColor = color;
+    
+    addListBtn.style.background = color;
+    addListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+    
+    addBtn.style.background = color;
+    addBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+    
+    menuBtn.style.background = color;
+    menuBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+    
+    filterBtns.forEach(btn => {
+        if (!btn.classList.contains('active')) {
+            btn.style.background = color;
+            btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
+        } else {
+            btn.style.border = "2px solid white";
+        }
+    });
+    
+    confirmAddListBtn.style.background = color;
+    confirmAddListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+    
+    updateColorSelectionRing(color);
+    
+    // WICHTIG: iOS Status Bar Farbe aktualisieren
+    document.getElementById('themeColor').content = '#111111';
+}
+
 /* -------------------------------
    SERVICE WORKER
 --------------------------------- */
