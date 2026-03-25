@@ -177,11 +177,13 @@ async function loadData() {
         });
         
         if (!response.ok) {
+            console.log("Nicht eingeloggt, zeige Login");
             logout();
             return;
         }
         
         const data = await response.json();
+        console.log("Geladen:", data); // Debug
         
         lists = data.lists || { 
             "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } 
@@ -199,6 +201,7 @@ async function loadData() {
         
     } catch (e) {
         console.error("Laden fehlgeschlagen:", e);
+        logout();
     }
 }
 
@@ -209,8 +212,10 @@ async function saveData() {
         currentList: currentList
     };
     
+    console.log("Speichere:", data); // Debug
+    
     try {
-        await fetch(`${API_URL}/data`, {
+        const response = await fetch(`${API_URL}/data`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -218,11 +223,14 @@ async function saveData() {
             },
             body: JSON.stringify(data)
         });
+        
+        const result = await response.json();
+        console.log("Server antwortet:", result); // Debug
+        
     } catch (e) {
         console.error("Speichern fehlgeschlagen:", e);
     }
 }
-
 /* -------------------------------   UI FUNKTIONEN   ------------------------------- */
 
 function updateButtonColors(color) {
