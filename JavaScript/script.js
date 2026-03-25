@@ -1,5 +1,5 @@
 import { auth, db, registerUser, loginUser, logoutUser, onAuthChanged } from './firebase-config.js';
-import { doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+import { doc, setDoc, onSnapshot, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
 
 /* -------------------------------
    VARIABLEN
@@ -48,6 +48,7 @@ let userId = null;
 let unsubscribe = null;
 let isRegistering = false;
 let currentListColor = "#0a84ff";
+let isLoading = true;
 
 /* -------------------------------
    AUTHENTIFIZIERUNG
@@ -84,6 +85,9 @@ function initAuth() {
     authPassword.addEventListener("keypress", (e) => {
         if (e.key === "Enter") handleAuth();
     });
+    authUsername.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") authPassword.focus();
+    });
 
     // Logout
     logoutBtn.addEventListener("click", () => {
@@ -96,9 +100,11 @@ function initAuth() {
     onAuthChanged(user => {
         if (user) {
             userId = user.uid;
+            console.log("Eingeloggt als:", userId);
             authModal.classList.remove("show");
             loadFromFirebase();
         } else {
+            console.log("Nicht eingeloggt");
             authModal.classList.add("show");
         }
     });
@@ -114,14 +120,21 @@ async function handleAuth() {
         return;
     }
 
+    if (password.length < 6) {
+        authError.textContent = "Passwort muss mindestens 6 Zeichen haben";
+        return;
+    }
+
     authSubmitBtn.disabled = true;
     authError.textContent = "";
 
     try {
         if (isRegistering) {
             await registerUser(username, password);
+            console.log("Registrierung erfolgreich");
         } else {
             await loginUser(username, password, remember);
+            console.log("Login erfolgreich");
         }
     } catch (error) {
         console.error("Auth Fehler:", error);
@@ -138,6 +151,7 @@ async function handleAuth() {
                 break;
             case 'auth/user-not-found':
             case 'auth/wrong-password':
+            case 'auth/invalid-credential':
                 message = "Falscher Benutzername oder Passwort";
                 break;
             case 'auth/too-many-requests':
@@ -151,20 +165,67 @@ async function handleAuth() {
 }
 
 /* -------------------------------
-   FIREBASE LADEN
+   FIREBASE LADEN (KORRIGIERT)
 --------------------------------- */
 function loadFromFirebase() {
-    const userRef = doc(db, 'users', userId);
+    if (!userId) return;
     
+    const userRef = doc(db, 'users', userId);
+    console.log("Lade Daten für:", userId);
+    
+    // Erst einmal prüfen ob Dokument existiert
+    getDoc(userRef).then(docSnap => {
+        if (!docSnap.exists()) {
+            console.log("Neuer Benutzer, erstelle Standarddaten");
+            // Erstelle initiale Daten für neuen Benutzer
+            const defaultData = {
+                lists: { 
+                    "Meine Liste": { 
+                        todos: [], 
+                        type: "todo", 
+                        color: "#0a84ff" 
+                    } 
+                },
+                listOrder: ["Meine Liste"],
+                currentList: "Meine Liste",
+                filter: null,
+                createdAt: new Date().toISOString()
+            };
+            
+            setDoc(userRef, defaultData).then(() => {
+                console.log("Standarddaten erstellt");
+                lists = defaultData.lists;
+                listOrder = defaultData.listOrder;
+                currentList = defaultData.currentList;
+                todos = [];
+                currentListColor = "#0a84ff";
+                updateButtonColors(currentListColor);
+                renderTabs();
+                render();
+                isLoading = false;
+            }).catch(err => {
+                console.error("Fehler beim Erstellen:", err);
+            });
+        } else {
+            console.log("Bestehender Benutzer gefunden");
+            isLoading = false;
+        }
+    }).catch(err => {
+        console.error("Fehler beim Lesen:", err);
+    });
+    
+    // Echtzeit-Updates abonnieren
     unsubscribe = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
+            console.log("Daten empfangen:", data);
+            
             lists = data.lists || { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
             listOrder = data.listOrder || Object.keys(lists);
             currentList = data.currentList || listOrder[0] || "Meine Liste";
             filter = data.filter || null;
             
-            // Migration
+            // Migration alte Datenstruktur
             for (const key in lists) {
                 if (!lists[key].todos && Array.isArray(lists[key])) {
                     lists[key] = { todos: lists[key], type: "todo", color: "#0a84ff" };
@@ -185,32 +246,20 @@ function loadFromFirebase() {
             
             renderTabs();
             render();
-        } else {
-            // Erster Start
-            const defaultData = {
-                lists: { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } },
-                listOrder: ["Meine Liste"],
-                currentList: "Meine Liste",
-                filter: null
-            };
-            setDoc(userRef, defaultData);
-            lists = defaultData.lists;
-            listOrder = defaultData.listOrder;
-            currentList = defaultData.currentList;
-            todos = [];
-            currentListColor = "#0a84ff";
-            updateButtonColors(currentListColor);
-            renderTabs();
-            render();
         }
+    }, (error) => {
+        console.error("Snapshot Fehler:", error);
     });
 }
 
 /* -------------------------------
-   FIREBASE SPEICHERN
+   FIREBASE SPEICHERN (KORRIGIERT)
 --------------------------------- */
 function saveToFirebase() {
-    if (!userId) return;
+    if (!userId) {
+        console.error("Kein User ID!");
+        return;
+    }
     
     if (!Array.isArray(todos)) todos = [];
     lists[currentList].todos = todos;
@@ -219,21 +268,26 @@ function saveToFirebase() {
         lists: lists,
         listOrder: listOrder,
         currentList: currentList,
-        filter: filter
+        filter: filter,
+        lastUpdate: new Date().toISOString()
     };
     
-    setDoc(doc(db, 'users', userId), data).catch(err => {
+    console.log("Speichere Daten:", data);
+    
+    const userRef = doc(db, 'users', userId);
+    setDoc(userRef, data).then(() => {
+        console.log("Erfolgreich gespeichert");
+    }).catch(err => {
         console.error("Speichern fehlgeschlagen:", err);
     });
 }
 
 /* -------------------------------
-   BUTTON FARBEN AKTUALISIEREN (Dynamisch)
+   BUTTON FARBEN AKTUALISIEREN
 --------------------------------- */
 function updateButtonColors(color) {
     currentListColor = color;
     
-    // Hauptbuttons
     addListBtn.style.background = color;
     addListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
@@ -243,7 +297,6 @@ function updateButtonColors(color) {
     menuBtn.style.background = color;
     menuBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
-    // Filter Buttons
     filterBtns.forEach(btn => {
         if (!btn.classList.contains('active')) {
             btn.style.background = color;
@@ -251,14 +304,11 @@ function updateButtonColors(color) {
         }
     });
     
-    // Modal Save Button
     confirmAddListBtn.style.background = color;
     confirmAddListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
-    // Farbauswahl Ring aktualisieren
     updateColorSelectionRing(color);
     
-    // Touch-Highlight Farbe für Mobile setzen
     document.documentElement.style.setProperty('--current-color', color);
     document.documentElement.style.setProperty('--current-color-dark', adjustColor(color, -20));
 }
@@ -277,7 +327,7 @@ function updateColorSelectionRing(selectedColor) {
         circle.style.boxShadow = "none";
         if (circle.dataset.color === selectedColor) {
             circle.classList.add("selected");
-            circle.style.boxShadow = `0 0 0 3px ${selectedColor}, 0 0 0 5px white`;
+            circle.style.boxShadow = `0 0 0 3px white, 0 0 0 6px ${selectedColor}`;
         }
     });
 }
@@ -297,7 +347,7 @@ document.addEventListener("click", e => {
 });
 
 /* -------------------------------
-   LISTENNAME BEARBEITEN (Fix für iPhone)
+   LISTENNAME BEARBEITEN
 --------------------------------- */
 let lastTapTitle = 0;
 function handleTouchEditTitle() {
@@ -313,13 +363,11 @@ listTitle.addEventListener("touchend", handleTouchEditTitle);
 function startEditingListTitle() {
     const currentName = currentList;
     
-    // Input erstellen
     const inputField = document.createElement("input");
     inputField.type = "text";
     inputField.value = currentName;
     inputField.className = "edit-input";
     
-    // Styles setzen um exakt gleich zu sein wie Titel
     inputField.style.cssText = `
         position: absolute;
         top: 0;
@@ -341,7 +389,6 @@ function startEditingListTitle() {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
     
-    // Container vorbereiten
     listTitle.style.position = "relative";
     listTitle.style.height = window.innerWidth <= 600 ? "40px" : "48px";
     listTitle.textContent = "";
@@ -429,7 +476,7 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------
-   INTERNE KATEGORISIERUNG
+   KATEGORISIERUNG
 --------------------------------- */
 const internalSubCategories = {
     'Milchprodukte': [
@@ -650,7 +697,7 @@ document.addEventListener('click', (e) => {
 });
 
 /* -------------------------------
-   ZAHLEN + EINHEITEN IN BLAU
+   ZAHLEN HERVORHEBEN
 --------------------------------- */
 function highlightNumbers(text) {
     const numberPattern = /^(\d+\.?\d*\s*(g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?\s*)/i;
@@ -666,7 +713,7 @@ function highlightNumbers(text) {
 }
 
 /* -------------------------------
-   RENDERN (FIX: Einkaufsliste Interaktionen)
+   RENDERN (KORRIGIERT FÜR EINKAUFSLISTE)
 --------------------------------- */
 function render() {
     list.innerHTML = "";
@@ -679,7 +726,45 @@ function render() {
     const isShoppingList = currentListData && currentListData.type === 'shopping';
 
     if (isShoppingList) {
-        const categorizedItems = getItemsByCategory(todos);
+        // WICHTIG: Wir arbeiten mit dem Original-Array, nicht mit Kopien!
+        // Deshalb müssen wir die Indizes korrekt zuordnen
+        
+        // Zuerst kategorisieren aber Original-Indizes merken
+        const itemsWithIndex = todos.map((todo, index) => ({
+            ...todo,
+            originalIndex: index
+        }));
+        
+        const categorizedItems = {
+            'Lebensmittel': [],
+            'Haushalt': [],
+            'Sonstiges': []
+        };
+        
+        itemsWithIndex.forEach(item => {
+            const mainCat = getMainCategory(item.text);
+            const internalCat = getInternalCategory(item.text);
+            const sortOrder = getFoodSortOrder(internalCat);
+            
+            categorizedItems[mainCat].push({
+                ...item,
+                _internalCategory: internalCat,
+                _sortOrder: sortOrder
+            });
+        });
+        
+        // Sortieren
+        categorizedItems['Lebensmittel'].sort((a, b) => {
+            if (a._sortOrder !== b._sortOrder) {
+                return a._sortOrder - b._sortOrder;
+            }
+            return a.text.localeCompare(b.text);
+        });
+        
+        categorizedItems['Haushalt'].sort((a, b) => a.text.localeCompare(b.text));
+        categorizedItems['Sonstiges'].sort((a, b) => a.text.localeCompare(b.text));
+        
+        // Anzeigen
         const displayOrder = ['Lebensmittel', 'Haushalt', 'Sonstiges'];
         
         displayOrder.forEach(category => {
@@ -689,10 +774,8 @@ function render() {
                 categoryHeader.textContent = category;
                 list.appendChild(categoryHeader);
 
-                categorizedItems[category].forEach(todo => {
-                    // WICHTIG: Original Index finden für korrekte Interaktion
-                    const originalIndex = todos.findIndex(t => t === todo);
-                    createTodoElement(todo, originalIndex, isShoppingList);
+                categorizedItems[category].forEach(item => {
+                    createTodoElement(item, item.originalIndex, isShoppingList);
                 });
             }
         });
@@ -706,8 +789,6 @@ function render() {
 
     updateCounter();
     updateFilterButtons();
-    
-    // iPhone: Verhindere Scroll wenn Liste kurz
     checkScrollable();
 }
 
@@ -717,7 +798,7 @@ function checkScrollable() {
         const listHeight = list.scrollHeight;
         const appHeight = app.clientHeight;
         
-        if (listHeight <= appHeight - 100) { // 100px Puffer für Input etc.
+        if (listHeight <= appHeight - 100) {
             app.style.overflow = 'hidden';
         } else {
             app.style.overflowY = 'auto';
@@ -769,7 +850,7 @@ function createTodoElement(todo, index, isShoppingList = false) {
 }
 
 /* -------------------------------
-   FILTER BUTTONS UPDATE
+   FILTER BUTTONS
 --------------------------------- */
 function updateFilterButtons() {
     filterBtns.forEach(btn => {
@@ -778,7 +859,6 @@ function updateFilterButtons() {
         } else {
             btn.classList.remove("active");
         }
-        // Farbe aktualisieren
         if (!btn.classList.contains('active')) {
             btn.style.background = currentListColor;
             btn.style.boxShadow = `0 3px 0 ${adjustColor(currentListColor, -20)}`;
@@ -805,15 +885,12 @@ addBtn.addEventListener("click", addTodo);
 input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
 
 /* -------------------------------
-   BUTTON PRESS EFFECT (Dynamische Farbe)
+   BUTTON EFFECT
 --------------------------------- */
 document.addEventListener("touchstart", function(e) {
     const btn = e.target.closest("button");
     if (btn) {
         btn.classList.add("press-effect");
-        // Setze die aktuelle Listenfarbe für den Shadow
-        const color = btn.style.backgroundColor || currentListColor;
-        btn.style.setProperty('--press-color', adjustColor(color, -20));
     }
 }, { passive: true });
 
@@ -824,26 +901,24 @@ document.addEventListener("touchend", function(e) {
     }
 }, { passive: true });
 
-document.addEventListener("touchcancel", function(e) {
-    if (e.target.tagName === "BUTTON" || e.target.closest("button")) {
-        const btn = e.target.closest("button");
-        if (btn) btn.classList.remove("press-effect");
-    }
-}, { passive: true });
-
 /* -------------------------------
-   EVENT DELEGATION (FIX für alle Listen)
+   EVENT DELEGATION (KORRIGIERT)
 --------------------------------- */
 list.addEventListener("click", e => {
-    const action = e.target.dataset.action;
-    const index = e.target.dataset.index;
+    const target = e.target;
+    const action = target.dataset.action;
+    const index = target.dataset.index;
+    
     if (!action || index === undefined) return;
+    
     const idx = Number(index);
+    
     if (action === "toggle" && todos[idx]) {
         todos[idx].erledigt = !todos[idx].erledigt;
         saveToFirebase();
         render();
     }
+    
     if (action === "delete" && todos[idx]) {
         todos.splice(idx, 1);
         saveToFirebase();
@@ -871,7 +946,7 @@ filterBtns.forEach(btn => {
 });
 
 /* -------------------------------
-   DRAG & DROP (Desktop)
+   DRAG & DROP
 --------------------------------- */
 let draggedItemIndex = null;
 list.addEventListener("dragstart", e => {
@@ -923,7 +998,7 @@ function getDragAfterElement(container, y) {
 }
 
 /* -------------------------------
-   TOUCH DRAG (Todos)
+   TOUCH DRAG
 --------------------------------- */
 let touchItem = null, touchStartY = 0, touchStartX = 0, hasMoved = false;
 
@@ -973,7 +1048,7 @@ function handleTouchEnd() {
 }
 
 /* -------------------------------
-   LISTEN MENÜ RENDER
+   LISTEN MENÜ
 --------------------------------- */
 let listDragItem = null;
 let listTouchStartY = 0;
@@ -1107,12 +1182,15 @@ function renderTabs() {
 }
 
 /* -------------------------------
-   MODAL FUNKTIONEN
+   MODAL
 --------------------------------- */
 addListBtn.addEventListener("click", () => {
     listNameInput.value = "";
     listTypeSelect.value = "todo";
-    colorCircles.forEach(c => c.classList.remove("selected"));
+    colorCircles.forEach(c => {
+        c.classList.remove("selected");
+        c.style.boxShadow = "none";
+    });
     colorCircles[5].classList.add("selected");
     selectedColor = "#0a84ff";
     colorPreview.style.color = selectedColor;
@@ -1128,7 +1206,10 @@ listTypeSelect.addEventListener("change", () => {
     if (listTypeSelect.value === "shopping") {
         listNameInput.value = "Einkaufsliste";
         selectedColor = "#34c759";
-        colorCircles.forEach(c => c.classList.remove("selected"));
+        colorCircles.forEach(c => {
+            c.classList.remove("selected");
+            c.style.boxShadow = "none";
+        });
         const greenCircle = document.querySelector('.color-circle[data-color="#34c759"]');
         if (greenCircle) {
             greenCircle.classList.add("selected");
@@ -1138,7 +1219,10 @@ listTypeSelect.addEventListener("change", () => {
     } else {
         listNameInput.value = "";
         selectedColor = "#0a84ff";
-        colorCircles.forEach(c => c.classList.remove("selected"));
+        colorCircles.forEach(c => {
+            c.classList.remove("selected");
+            c.style.boxShadow = "none";
+        });
         colorCircles[5].classList.add("selected");
         colorPreview.style.color = "#0a84ff";
         updateColorSelectionRing("#0a84ff");
