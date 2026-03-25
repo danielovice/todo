@@ -48,20 +48,18 @@ let userId = null;
 let unsubscribe = null;
 let isRegistering = false;
 let currentListColor = "#0a84ff";
-let isLoading = true;
+let dataLoaded = false;
 
 /* -------------------------------
    AUTHENTIFIZIERUNG
 --------------------------------- */
 function initAuth() {
-    // Passwort anzeigen/verbergen
     togglePassword.addEventListener("click", () => {
         const type = authPassword.type === "password" ? "text" : "password";
         authPassword.type = type;
         togglePassword.textContent = type === "password" ? "👁" : "🙈";
     });
 
-    // Login/Register umschalten
     authSwitchBtn.addEventListener("click", () => {
         isRegistering = !isRegistering;
         if (isRegistering) {
@@ -78,34 +76,32 @@ function initAuth() {
         authError.textContent = "";
     });
 
-    // Submit Handler
     authSubmitBtn.addEventListener("click", handleAuth);
     
-    // Enter Key Handler
     authPassword.addEventListener("keypress", (e) => {
         if (e.key === "Enter") handleAuth();
     });
+    
     authUsername.addEventListener("keypress", (e) => {
         if (e.key === "Enter") authPassword.focus();
     });
 
-    // Logout
     logoutBtn.addEventListener("click", () => {
         logoutUser().then(() => {
             location.reload();
         });
     });
 
-    // Auth State überwachen
     onAuthChanged(user => {
         if (user) {
             userId = user.uid;
-            console.log("Eingeloggt als:", userId);
+            console.log("Auth erfolgreich:", userId);
             authModal.classList.remove("show");
             loadFromFirebase();
         } else {
-            console.log("Nicht eingeloggt");
+            console.log("Nicht authentifiziert");
             authModal.classList.add("show");
+            dataLoaded = false;
         }
     });
 }
@@ -131,10 +127,8 @@ async function handleAuth() {
     try {
         if (isRegistering) {
             await registerUser(username, password);
-            console.log("Registrierung erfolgreich");
         } else {
             await loginUser(username, password, remember);
-            console.log("Login erfolgreich");
         }
     } catch (error) {
         console.error("Auth Fehler:", error);
@@ -159,7 +153,6 @@ async function handleAuth() {
                 break;
         }
         authError.textContent = message;
-    } finally {
         authSubmitBtn.disabled = false;
     }
 }
@@ -171,13 +164,12 @@ function loadFromFirebase() {
     if (!userId) return;
     
     const userRef = doc(db, 'users', userId);
-    console.log("Lade Daten für:", userId);
+    console.log("Starte Laden für:", userId);
     
-    // Erst einmal prüfen ob Dokument existiert
+    // Prüfe ob Dokument existiert
     getDoc(userRef).then(docSnap => {
         if (!docSnap.exists()) {
             console.log("Neuer Benutzer, erstelle Standarddaten");
-            // Erstelle initiale Daten für neuen Benutzer
             const defaultData = {
                 lists: { 
                     "Meine Liste": { 
@@ -192,46 +184,42 @@ function loadFromFirebase() {
                 createdAt: new Date().toISOString()
             };
             
-            setDoc(userRef, defaultData).then(() => {
+            return setDoc(userRef, defaultData).then(() => {
                 console.log("Standarddaten erstellt");
                 lists = defaultData.lists;
                 listOrder = defaultData.listOrder;
                 currentList = defaultData.currentList;
                 todos = [];
-                currentListColor = "#0a84ff";
-                updateButtonColors(currentListColor);
+                dataLoaded = true;
+                updateButtonColors("#0a84ff");
                 renderTabs();
                 render();
-                isLoading = false;
-            }).catch(err => {
-                console.error("Fehler beim Erstellen:", err);
             });
         } else {
-            console.log("Bestehender Benutzer gefunden");
-            isLoading = false;
+            console.log("Bestehender Benutzer");
+            dataLoaded = true;
         }
     }).catch(err => {
-        console.error("Fehler beim Lesen:", err);
+        console.error("Fehler beim Initialisieren:", err);
     });
     
-    // Echtzeit-Updates abonnieren
+    // Echtzeit-Updates
+    if (unsubscribe) unsubscribe();
+    
     unsubscribe = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            console.log("Daten empfangen:", data);
+            console.log("Daten aktualisiert:", data);
             
             lists = data.lists || { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
             listOrder = data.listOrder || Object.keys(lists);
             currentList = data.currentList || listOrder[0] || "Meine Liste";
             filter = data.filter || null;
             
-            // Migration alte Datenstruktur
+            // Migration
             for (const key in lists) {
                 if (!lists[key].todos && Array.isArray(lists[key])) {
                     lists[key] = { todos: lists[key], type: "todo", color: "#0a84ff" };
-                }
-                if (!listOrder.includes(key)) {
-                    listOrder.push(key);
                 }
             }
             
@@ -241,11 +229,12 @@ function loadFromFirebase() {
             
             listTitle.textContent = currentList;
             currentListColor = lists[currentList]?.color || "#0a84ff";
-            updateButtonColors(currentListColor);
             todos = lists[currentList]?.todos || [];
             
+            updateButtonColors(currentListColor);
             renderTabs();
             render();
+            dataLoaded = true;
         }
     }, (error) => {
         console.error("Snapshot Fehler:", error);
@@ -253,11 +242,11 @@ function loadFromFirebase() {
 }
 
 /* -------------------------------
-   FIREBASE SPEICHERN (KORRIGIERT)
+   FIREBASE SPEICHERN
 --------------------------------- */
 function saveToFirebase() {
-    if (!userId) {
-        console.error("Kein User ID!");
+    if (!userId || !dataLoaded) {
+        console.error("Nicht bereit zum Speichern");
         return;
     }
     
@@ -272,18 +261,16 @@ function saveToFirebase() {
         lastUpdate: new Date().toISOString()
     };
     
-    console.log("Speichere Daten:", data);
+    console.log("Speichere:", data);
     
     const userRef = doc(db, 'users', userId);
-    setDoc(userRef, data).then(() => {
-        console.log("Erfolgreich gespeichert");
-    }).catch(err => {
+    setDoc(userRef, data).catch(err => {
         console.error("Speichern fehlgeschlagen:", err);
     });
 }
 
 /* -------------------------------
-   BUTTON FARBEN AKTUALISIEREN
+   BUTTON FARBEN
 --------------------------------- */
 function updateButtonColors(color) {
     currentListColor = color;
@@ -301,6 +288,8 @@ function updateButtonColors(color) {
         if (!btn.classList.contains('active')) {
             btn.style.background = color;
             btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
+        } else {
+            btn.style.borderColor = "white";
         }
     });
     
@@ -308,9 +297,6 @@ function updateButtonColors(color) {
     confirmAddListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
     updateColorSelectionRing(color);
-    
-    document.documentElement.style.setProperty('--current-color', color);
-    document.documentElement.style.setProperty('--current-color-dark', adjustColor(color, -20));
 }
 
 function adjustColor(color, amount) {
@@ -333,16 +319,21 @@ function updateColorSelectionRing(selectedColor) {
 }
 
 /* -------------------------------
-   MENÜ
+   MENÜ (FIX: Toggle)
 --------------------------------- */
 menuBtn.addEventListener("click", e => {
     e.stopPropagation();
-    menuDropdown.style.display = menuDropdown.style.display === "flex" ? "none" : "flex";
+    const isOpen = menuDropdown.classList.contains("show");
+    if (isOpen) {
+        menuDropdown.classList.remove("show");
+    } else {
+        menuDropdown.classList.add("show");
+    }
 });
 
 document.addEventListener("click", e => {
     if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
-        menuDropdown.style.display = "none";
+        menuDropdown.classList.remove("show");
     }
 });
 
@@ -591,38 +582,6 @@ function getFoodSortOrder(internalCategory) {
     return order.indexOf(internalCategory);
 }
 
-function getItemsByCategory(items) {
-    const mainCategories = {
-        'Lebensmittel': [],
-        'Haushalt': [],
-        'Sonstiges': []
-    };
-    
-    items.forEach(item => {
-        const mainCat = getMainCategory(item.text);
-        const internalCat = getInternalCategory(item.text);
-        const sortOrder = getFoodSortOrder(internalCat);
-        
-        mainCategories[mainCat].push({
-            ...item,
-            _internalCategory: internalCat,
-            _sortOrder: sortOrder
-        });
-    });
-    
-    mainCategories['Lebensmittel'].sort((a, b) => {
-        if (a._sortOrder !== b._sortOrder) {
-            return a._sortOrder - b._sortOrder;
-        }
-        return a.text.localeCompare(b.text);
-    });
-    
-    mainCategories['Haushalt'].sort((a, b) => a.text.localeCompare(b.text));
-    mainCategories['Sonstiges'].sort((a, b) => a.text.localeCompare(b.text));
-    
-    return mainCategories;
-}
-
 /* -------------------------------
    AUTOCOMPLETE
 --------------------------------- */
@@ -713,26 +672,33 @@ function highlightNumbers(text) {
 }
 
 /* -------------------------------
-   RENDERN (KORRIGIERT FÜR EINKAUFSLISTE)
+   RENDERN (KORRIGIERT)
 --------------------------------- */
 function render() {
     list.innerHTML = "";
+    
     if (!todos || !Array.isArray(todos)) { 
         todos = []; 
-        saveToFirebase(); 
     }
 
     const currentListData = lists[currentList];
     const isShoppingList = currentListData && currentListData.type === 'shopping';
 
     if (isShoppingList) {
-        // WICHTIG: Wir arbeiten mit dem Original-Array, nicht mit Kopien!
-        // Deshalb müssen wir die Indizes korrekt zuordnen
+        // Einkaufsliste mit Kategorien und Filter
+        let displayTodos = todos;
         
-        // Zuerst kategorisieren aber Original-Indizes merken
-        const itemsWithIndex = todos.map((todo, index) => ({
+        // Filter anwenden
+        if (filter === "offen") {
+            displayTodos = todos.filter(t => !t.erledigt);
+        } else if (filter === "erledigt") {
+            displayTodos = todos.filter(t => t.erledigt);
+        }
+        
+        // Mit Original-Indizes
+        const itemsWithIndex = displayTodos.map(todo => ({
             ...todo,
-            originalIndex: index
+            originalIndex: todos.indexOf(todo)
         }));
         
         const categorizedItems = {
@@ -753,7 +719,6 @@ function render() {
             });
         });
         
-        // Sortieren
         categorizedItems['Lebensmittel'].sort((a, b) => {
             if (a._sortOrder !== b._sortOrder) {
                 return a._sortOrder - b._sortOrder;
@@ -764,7 +729,6 @@ function render() {
         categorizedItems['Haushalt'].sort((a, b) => a.text.localeCompare(b.text));
         categorizedItems['Sonstiges'].sort((a, b) => a.text.localeCompare(b.text));
         
-        // Anzeigen
         const displayOrder = ['Lebensmittel', 'Haushalt', 'Sonstiges'];
         
         displayOrder.forEach(category => {
@@ -780,6 +744,7 @@ function render() {
             }
         });
     } else {
+        // Normale Todo-Liste
         todos.forEach((todo, index) => {
             if (filter === "offen" && todo.erledigt) return;
             if (filter === "erledigt" && !todo.erledigt) return;
@@ -789,21 +754,6 @@ function render() {
 
     updateCounter();
     updateFilterButtons();
-    checkScrollable();
-}
-
-function checkScrollable() {
-    if (window.innerWidth <= 600) {
-        const app = document.querySelector('.app');
-        const listHeight = list.scrollHeight;
-        const appHeight = app.clientHeight;
-        
-        if (listHeight <= appHeight - 100) {
-            app.style.overflow = 'hidden';
-        } else {
-            app.style.overflowY = 'auto';
-        }
-    }
 }
 
 function createTodoElement(todo, index, isShoppingList = false) {
@@ -854,14 +804,19 @@ function createTodoElement(todo, index, isShoppingList = false) {
 --------------------------------- */
 function updateFilterButtons() {
     filterBtns.forEach(btn => {
+        // Reset
+        btn.classList.remove("active");
+        btn.style.background = currentListColor;
+        btn.style.boxShadow = `0 3px 0 ${adjustColor(currentListColor, -20)}`;
+        btn.style.border = "2px solid transparent";
+        
+        // Set active
         if (btn.dataset.filter === filter) {
             btn.classList.add("active");
+            btn.style.border = "2px solid white";
+            btn.style.transform = "scale(1.08)";
         } else {
-            btn.classList.remove("active");
-        }
-        if (!btn.classList.contains('active')) {
-            btn.style.background = currentListColor;
-            btn.style.boxShadow = `0 3px 0 ${adjustColor(currentListColor, -20)}`;
+            btn.style.transform = "scale(1)";
         }
     });
 }
@@ -870,8 +825,14 @@ function updateFilterButtons() {
    TODOS HINZUFÜGEN
 --------------------------------- */
 function addTodo() {
+    if (!dataLoaded) {
+        console.error("Daten noch nicht geladen");
+        return;
+    }
+    
     const text = input.value.trim();
     if (!text) return;
+    
     todos.push({ text, erledigt: false });
     input.value = "";
     input.blur();
@@ -882,7 +843,9 @@ function addTodo() {
 }
 
 addBtn.addEventListener("click", addTodo);
-input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
+input.addEventListener("keypress", e => { 
+    if (e.key === "Enter") addTodo(); 
+});
 
 /* -------------------------------
    BUTTON EFFECT
@@ -902,7 +865,7 @@ document.addEventListener("touchend", function(e) {
 }, { passive: true });
 
 /* -------------------------------
-   EVENT DELEGATION (KORRIGIERT)
+   EVENT DELEGATION
 --------------------------------- */
 list.addEventListener("click", e => {
     const target = e.target;
@@ -934,11 +897,8 @@ filterBtns.forEach(btn => {
         const value = btn.dataset.filter;
         if (filter === value) {
             filter = null;
-            btn.classList.remove("active");
         } else {
             filter = value;
-            filterBtns.forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
         }
         saveToFirebase();
         render();
