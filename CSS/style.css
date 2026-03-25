@@ -34,7 +34,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   AUTH MODAL (Login/Register)
+   AUTH MODAL
 -------------------------------------------- */
 .auth-modal {
     display: none;
@@ -90,19 +90,6 @@ input, textarea, [contenteditable], .edit-input {
     font-size: 17px;
     outline: none;
     width: 100%;
-}
-
-#authUsername {
-    padding-right: 80px;
-}
-
-.email-suffix {
-    position: absolute;
-    right: 16px;
-    bottom: 14px;
-    color: #8e8e93;
-    font-size: 15px;
-    pointer-events: none;
 }
 
 .password-wrapper {
@@ -220,7 +207,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   NAVBAR (NICHT STICKY auf Mobile)
+   NAVBAR (FIX: Buttons nicht übereinander)
 -------------------------------------------- */
 .navbar {
     display: flex;
@@ -233,8 +220,21 @@ input, textarea, [contenteditable], .edit-input {
     z-index: 50;
 }
 
+.logo {
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    position: relative;
+}
+
 /* -------------------------------------------
-   BUTTONS (Dynamische Farben für Shadow)
+   BUTTONS
 -------------------------------------------- */
 button {
     padding: 10px 14px;
@@ -256,13 +256,8 @@ button.press-effect {
     box-shadow: 0 2px 0 #0060df;
 }
 
-/* Dynamische Button-Farben - werden via JS gesetzt */
-button[style*="background"] {
-    /* Shadow-Farbe wird dynamisch berechnet */
-}
-
 /* -------------------------------------------
-   MENÜ
+   MENÜ (FIX: Positionierung)
 -------------------------------------------- */
 .menu {
     position: relative;
@@ -271,7 +266,7 @@ button[style*="background"] {
 #menuDropdown {
     position: absolute;
     right: 0;
-    top: 45px;
+    top: calc(100% + 8px);
     background: #111;
     border: 1px solid #222;
     border-radius: 14px;
@@ -286,7 +281,7 @@ button[style*="background"] {
     overflow-y: auto;
 }
 
-.menu:hover #menuDropdown {
+#menuDropdown.show {
     display: flex;
 }
 
@@ -339,7 +334,7 @@ button[style*="background"] {
 }
 
 /* -------------------------------------------
-   APP Container (iPhone Optimierung)
+   APP Container
 -------------------------------------------- */
 .app {
     flex: 1;
@@ -354,11 +349,6 @@ button[style*="background"] {
     margin: 15px auto;
     touch-action: pan-y;
     position: relative;
-}
-
-/* Wichtig: Kein Scroll wenn Liste kurz */
-.app:has(#todoList:empty) {
-    overflow: hidden;
 }
 
 .app::-webkit-scrollbar {
@@ -396,7 +386,7 @@ h1, #listTitle {
 }
 
 /* -------------------------------------------
-   LIST TITLE EDIT INPUT (Fix für iPhone)
+   LIST TITLE EDIT INPUT
 -------------------------------------------- */
 #listTitle .edit-input {
     position: absolute;
@@ -623,10 +613,16 @@ li span .quantity {
 }
 
 /* Durchgestrichen wenn erledigt */
-li span.erledigt,
+li span.erledigt {
+    text-decoration: line-through !important;
+    color: #777;
+    opacity: 0.85;
+}
+
 li span.erledigt .quantity {
     text-decoration: line-through !important;
-    -webkit-text-decoration: line-through !important;
+    color: #0a84ff;
+    opacity: 0.6;
 }
 
 .drag-handle {
@@ -857,19 +853,7 @@ footer {
 
 .color-circle.selected {
     border-color: white;
-    /* Ring-Farbe wird dynamisch via JS gesetzt */
-}
-
-.color-circle.selected::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    box-shadow: 0 0 0 3px currentColor;
 }
 
 /* Kategorien */
@@ -887,26 +871,17 @@ footer {
 }
 
 /* -------------------------------------------
-   MOBILE OPTIMIERUNGEN
+   MOBILE
 -------------------------------------------- */
 @media (max-width: 600px) {
-    /* Navbar nicht sticky - normal im Flow */
     .navbar {
         position: relative;
     }
     
-    /* App Container anpassungen */
     .app { 
         margin: 10px; 
         padding: 16px; 
         border-radius: 20px;
-        /* Kein overflow wenn Liste leer/kurz */
-        overflow-y: auto;
-    }
-    
-    /* Verhindert Scroll wenn nicht nötig */
-    .app:has(ul:empty) {
-        overflow: hidden;
     }
     
     .input-area { 
@@ -964,16 +939,6 @@ footer {
         height: 36px; 
     }
     
-    /* Auth Modal auf Mobile */
-    .auth-content {
-        margin: 20px;
-        max-height: 90vh;
-    }
-    
-    .auth-header h2 {
-        font-size: 24px;
-    }
-    
     button:active {
         transform: translateY(2px) !important;
         box-shadow: 0 2px 0 #0060df !important;
@@ -982,42 +947,4 @@ footer {
     footer {
         display: none;
     }
-}
-
-/* Auth Input ohne Suffix */
-.input-group input[type="text"] {
-    padding: 14px 16px;
-}
-
-/* Farbauswahl nur Rand, kein Häkchen */
-.color-circle.selected {
-    border-color: white;
-    box-shadow: 0 0 0 3px currentColor;
-}
-
-.color-circle.selected::after {
-    display: none;
-}
-
-/* Einkaufsliste - Durchgestrichen fix */
-li span.erledigt {
-    text-decoration: line-through !important;
-    color: #777;
-    opacity: 0.85;
-}
-
-li span.erledigt .quantity {
-    text-decoration: line-through !important;
-    color: #0a84ff;
-    opacity: 0.6;
-}
-
-/* Touch Highlight Farben werden dynamisch gesetzt */
-button[style*="background"]:active {
-    /* Shadow wird via JS angepasst */
-}
-
-/* Dynamische Farbauswahl Ring */
-.color-circle.selected {
-    /* box-shadow wird via JS gesetzt auf aktuelle Listenfarbe */
 }
