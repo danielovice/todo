@@ -22,6 +22,7 @@ body {
     height: 100%;
     overflow: hidden;
     touch-action: pan-y;
+    position: relative;
 }
 
 input, textarea, [contenteditable], .edit-input {
@@ -207,7 +208,7 @@ input, textarea, [contenteditable], .edit-input {
 }
 
 /* -------------------------------------------
-   NAVBAR (FIX: Buttons nicht übereinander)
+   NAVBAR (FIX: Buttons nebeneinander)
 -------------------------------------------- */
 .navbar {
     display: flex;
@@ -226,47 +227,21 @@ input, textarea, [contenteditable], .edit-input {
     letter-spacing: -0.3px;
 }
 
+/* FIX: Buttons nebeneinander */
 .nav-buttons {
     display: flex;
+    flex-direction: row;
     gap: 10px;
     align-items: center;
-    position: relative;
 }
 
 /* -------------------------------------------
-   BUTTONS
+   MENÜ DROPDOWN (Außerhalb Navbar)
 -------------------------------------------- */
-button {
-    padding: 10px 14px;
-    border-radius: 12px;
-    border: none;
-    background: #0a84ff;
-    color: white;
-    cursor: pointer;
-    font-weight: 500;
-    box-shadow: 0 4px 0 #0060df;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-button.press-effect {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #0060df;
-}
-
-/* -------------------------------------------
-   MENÜ (FIX: Positionierung)
--------------------------------------------- */
-.menu {
-    position: relative;
-}
-
 #menuDropdown {
     position: absolute;
-    right: 0;
-    top: calc(100% + 8px);
+    right: 20px;
+    top: 60px;
     background: #111;
     border: 1px solid #222;
     border-radius: 14px;
@@ -277,7 +252,7 @@ button.press-effect {
     min-width: 200px;
     z-index: 100;
     box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-    max-height: 50vh;
+    max-height: 60vh;
     overflow-y: auto;
 }
 
@@ -334,7 +309,30 @@ button.press-effect {
 }
 
 /* -------------------------------------------
-   APP Container
+   BUTTONS
+-------------------------------------------- */
+button {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: none;
+    background: #0a84ff;
+    color: white;
+    cursor: pointer;
+    font-weight: 500;
+    box-shadow: 0 4px 0 #0060df;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button.press-effect {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #0060df;
+}
+
+/* -------------------------------------------
+   APP Container (FIX: Scroll)
 -------------------------------------------- */
 .app {
     flex: 1;
@@ -349,6 +347,7 @@ button.press-effect {
     margin: 15px auto;
     touch-action: pan-y;
     position: relative;
+    -webkit-overflow-scrolling: touch; /* Wichtig für iOS */
 }
 
 .app::-webkit-scrollbar {
@@ -878,10 +877,19 @@ footer {
         position: relative;
     }
     
+    #menuDropdown {
+        right: 10px;
+        top: 55px;
+        max-width: calc(100vw - 20px);
+    }
+    
     .app { 
         margin: 10px; 
         padding: 16px; 
         border-radius: 20px;
+        /* Wichtig für iOS Scroll */
+        -webkit-overflow-scrolling: touch;
+        overflow-y: scroll;
     }
     
     .input-area { 
