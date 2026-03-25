@@ -38,22 +38,34 @@ const confirmAddListBtn = document.getElementById("confirmAddListBtn");
 const closeModalBtn = document.getElementById("closeModalBtn");
 const colorPreview = document.getElementById("colorPreview");
 
-let lists = {};
-let listOrder = [];
+// WICHTIG: Initialisiere mit Standardwerten sofort
+let lists = { 
+    "Meine Liste": { 
+        todos: [], 
+        type: "todo", 
+        color: "#0a84ff" 
+    } 
+};
+let listOrder = ["Meine Liste"];
 let currentList = "Meine Liste";
 let filter = null;
 let selectedColor = "#0a84ff";
-let todos = [];
+let todos = lists["Meine Liste"].todos;
 let userId = null;
 let unsubscribe = null;
 let isRegistering = false;
 let currentListColor = "#0a84ff";
-let dataLoaded = false;
+let isInitialized = false;
 
 /* -------------------------------
    AUTHENTIFIZIERUNG
 --------------------------------- */
 function initAuth() {
+    // Sofort Standard-UI anzeigen
+    renderTabs();
+    render();
+    updateButtonColors("#0a84ff");
+
     togglePassword.addEventListener("click", () => {
         const type = authPassword.type === "password" ? "text" : "password";
         authPassword.type = type;
@@ -97,11 +109,12 @@ function initAuth() {
             userId = user.uid;
             console.log("Auth erfolgreich:", userId);
             authModal.classList.remove("show");
+            authSubmitBtn.disabled = false;
             loadFromFirebase();
         } else {
             console.log("Nicht authentifiziert");
             authModal.classList.add("show");
-            dataLoaded = false;
+            isInitialized = false;
         }
     });
 }
@@ -127,8 +140,10 @@ async function handleAuth() {
     try {
         if (isRegistering) {
             await registerUser(username, password);
+            console.log("Registrierung erfolgreich");
         } else {
             await loginUser(username, password, remember);
+            console.log("Login erfolgreich");
         }
     } catch (error) {
         console.error("Auth Fehler:", error);
@@ -158,18 +173,21 @@ async function handleAuth() {
 }
 
 /* -------------------------------
-   FIREBASE LADEN (KORRIGIERT)
+   FIREBASE LADEN
 --------------------------------- */
-function loadFromFirebase() {
+async function loadFromFirebase() {
     if (!userId) return;
     
     const userRef = doc(db, 'users', userId);
-    console.log("Starte Laden für:", userId);
+    console.log("Lade Daten für:", userId);
     
-    // Prüfe ob Dokument existiert
-    getDoc(userRef).then(docSnap => {
+    try {
+        // Prüfe ob Dokument existiert
+        const docSnap = await getDoc(userRef);
+        
         if (!docSnap.exists()) {
             console.log("Neuer Benutzer, erstelle Standarddaten");
+            // Erstelle Standarddaten
             const defaultData = {
                 lists: { 
                     "Meine Liste": { 
@@ -184,32 +202,22 @@ function loadFromFirebase() {
                 createdAt: new Date().toISOString()
             };
             
-            return setDoc(userRef, defaultData).then(() => {
-                console.log("Standarddaten erstellt");
-                lists = defaultData.lists;
-                listOrder = defaultData.listOrder;
-                currentList = defaultData.currentList;
-                todos = [];
-                dataLoaded = true;
-                updateButtonColors("#0a84ff");
-                renderTabs();
-                render();
-            });
+            // WICHTIG: Speichere sofort!
+            await setDoc(userRef, defaultData);
+            console.log("Standarddaten in Firebase erstellt");
+            
+            lists = defaultData.lists;
+            listOrder = defaultData.listOrder;
+            currentList = defaultData.currentList;
+            todos = [];
+            isInitialized = true;
+            
+            updateButtonColors("#0a84ff");
+            renderTabs();
+            render();
         } else {
-            console.log("Bestehender Benutzer");
-            dataLoaded = true;
-        }
-    }).catch(err => {
-        console.error("Fehler beim Initialisieren:", err);
-    });
-    
-    // Echtzeit-Updates
-    if (unsubscribe) unsubscribe();
-    
-    unsubscribe = onSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists()) {
+            console.log("Bestehende Daten gefunden");
             const data = docSnap.data();
-            console.log("Daten aktualisiert:", data);
             
             lists = data.lists || { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
             listOrder = data.listOrder || Object.keys(lists);
@@ -227,14 +235,54 @@ function loadFromFirebase() {
                 currentList = listOrder[0] || "Meine Liste";
             }
             
+            todos = lists[currentList]?.todos || [];
+            isInitialized = true;
+            
             listTitle.textContent = currentList;
             currentListColor = lists[currentList]?.color || "#0a84ff";
-            todos = lists[currentList]?.todos || [];
-            
             updateButtonColors(currentListColor);
             renderTabs();
             render();
-            dataLoaded = true;
+        }
+        
+        // Starte Echtzeit-Updates
+        startRealtimeUpdates(userRef);
+        
+    } catch (err) {
+        console.error("Fehler beim Laden:", err);
+        isInitialized = true; // Trotzdem erlauben zu arbeiten
+    }
+}
+
+function startRealtimeUpdates(userRef) {
+    if (unsubscribe) unsubscribe();
+    
+    unsubscribe = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            console.log("Echtzeit-Update erhalten");
+            
+            // Nur updaten wenn nicht gerade selbst gespeichert wird
+            lists = data.lists || lists;
+            listOrder = data.listOrder || listOrder;
+            
+            // Aktuelle Liste beibehalten wenn möglich
+            if (lists[currentList]) {
+                todos = lists[currentList].todos || [];
+            } else {
+                currentList = data.currentList || listOrder[0] || "Meine Liste";
+                if (lists[currentList]) {
+                    todos = lists[currentList].todos || [];
+                }
+            }
+            
+            filter = data.filter || filter;
+            
+            listTitle.textContent = currentList;
+            currentListColor = lists[currentList]?.color || "#0a84ff";
+            updateButtonColors(currentListColor);
+            renderTabs();
+            render();
         }
     }, (error) => {
         console.error("Snapshot Fehler:", error);
@@ -242,14 +290,20 @@ function loadFromFirebase() {
 }
 
 /* -------------------------------
-   FIREBASE SPEICHERN
+   FIREBASE SPEICHERN (KORRIGIERT)
 --------------------------------- */
-function saveToFirebase() {
-    if (!userId || !dataLoaded) {
-        console.error("Nicht bereit zum Speichern");
+async function saveToFirebase() {
+    if (!userId) {
+        console.error("Kein User ID - nicht gespeichert");
         return;
     }
     
+    if (!isInitialized) {
+        console.error("Noch nicht initialisiert - nicht gespeichert");
+        return;
+    }
+    
+    // WICHTIG: Aktuelle Todos in lists aktualisieren
     if (!Array.isArray(todos)) todos = [];
     lists[currentList].todos = todos;
     
@@ -261,12 +315,15 @@ function saveToFirebase() {
         lastUpdate: new Date().toISOString()
     };
     
-    console.log("Speichere:", data);
+    console.log("Speichere zu Firebase:", data);
     
-    const userRef = doc(db, 'users', userId);
-    setDoc(userRef, data).catch(err => {
-        console.error("Speichern fehlgeschlagen:", err);
-    });
+    try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, data);
+        console.log("Erfolgreich gespeichert!");
+    } catch (err) {
+        console.error("Speichern FEHLGESCHLAGEN:", err);
+    }
 }
 
 /* -------------------------------
@@ -289,7 +346,7 @@ function updateButtonColors(color) {
             btn.style.background = color;
             btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
         } else {
-            btn.style.borderColor = "white";
+            btn.style.border = "2px solid white";
         }
     });
     
@@ -319,19 +376,14 @@ function updateColorSelectionRing(selectedColor) {
 }
 
 /* -------------------------------
-   MENÜ (FIX: Toggle)
+   MENÜ
 --------------------------------- */
-menuBtn.addEventListener("click", e => {
+menuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    const isOpen = menuDropdown.classList.contains("show");
-    if (isOpen) {
-        menuDropdown.classList.remove("show");
-    } else {
-        menuDropdown.classList.add("show");
-    }
+    menuDropdown.classList.toggle("show");
 });
 
-document.addEventListener("click", e => {
+document.addEventListener("click", (e) => {
     if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
         menuDropdown.classList.remove("show");
     }
@@ -672,7 +724,7 @@ function highlightNumbers(text) {
 }
 
 /* -------------------------------
-   RENDERN (KORRIGIERT)
+   RENDERN
 --------------------------------- */
 function render() {
     list.innerHTML = "";
@@ -685,17 +737,15 @@ function render() {
     const isShoppingList = currentListData && currentListData.type === 'shopping';
 
     if (isShoppingList) {
-        // Einkaufsliste mit Kategorien und Filter
-        let displayTodos = todos;
-        
         // Filter anwenden
+        let displayTodos = todos;
         if (filter === "offen") {
             displayTodos = todos.filter(t => !t.erledigt);
         } else if (filter === "erledigt") {
             displayTodos = todos.filter(t => t.erledigt);
         }
         
-        // Mit Original-Indizes
+        // Mit Original-Indizes für korrekte Interaktion
         const itemsWithIndex = displayTodos.map(todo => ({
             ...todo,
             originalIndex: todos.indexOf(todo)
@@ -804,19 +854,16 @@ function createTodoElement(todo, index, isShoppingList = false) {
 --------------------------------- */
 function updateFilterButtons() {
     filterBtns.forEach(btn => {
-        // Reset
         btn.classList.remove("active");
         btn.style.background = currentListColor;
         btn.style.boxShadow = `0 3px 0 ${adjustColor(currentListColor, -20)}`;
         btn.style.border = "2px solid transparent";
+        btn.style.transform = "scale(1)";
         
-        // Set active
         if (btn.dataset.filter === filter) {
             btn.classList.add("active");
             btn.style.border = "2px solid white";
             btn.style.transform = "scale(1.08)";
-        } else {
-            btn.style.transform = "scale(1)";
         }
     });
 }
@@ -825,8 +872,8 @@ function updateFilterButtons() {
    TODOS HINZUFÜGEN
 --------------------------------- */
 function addTodo() {
-    if (!dataLoaded) {
-        console.error("Daten noch nicht geladen");
+    if (!isInitialized) {
+        console.error("Noch nicht initialisiert");
         return;
     }
     
@@ -838,6 +885,10 @@ function addTodo() {
     input.blur();
     autocompleteList.classList.remove('show');
     autocompleteList.innerHTML = '';
+    
+    // WICHTIG: Zuerst in lists aktualisieren, dann speichern
+    lists[currentList].todos = todos;
+    
     saveToFirebase();
     render();
 }
@@ -878,12 +929,16 @@ list.addEventListener("click", e => {
     
     if (action === "toggle" && todos[idx]) {
         todos[idx].erledigt = !todos[idx].erledigt;
+        // WICHTIG: In lists aktualisieren
+        lists[currentList].todos = todos;
         saveToFirebase();
         render();
     }
     
     if (action === "delete" && todos[idx]) {
         todos.splice(idx, 1);
+        // WICHTIG: In lists aktualisieren
+        lists[currentList].todos = todos;
         saveToFirebase();
         render();
     }
@@ -942,6 +997,7 @@ list.addEventListener("drop", () => {
     });
     if (newTodos.length === todos.length) { 
         todos = newTodos; 
+        lists[currentList].todos = todos;
         saveToFirebase(); 
         render(); 
     } else render();
@@ -1000,6 +1056,7 @@ function handleTouchEnd() {
         });
         if (newTodos.length === todos.length) { 
             todos = newTodos; 
+            lists[currentList].todos = todos;
             saveToFirebase(); 
             render(); 
         }
@@ -1124,8 +1181,20 @@ function renderTabs() {
             if (!confirm(`Liste "${name}" löschen?`)) return;
             delete lists[name];
             listOrder = listOrder.filter(n => n !== name);
-            currentList = listOrder[0] || "Meine Liste";
-            if (!lists[currentList]) lists[currentList] = { todos: [], type: "todo", color: "#0a84ff" };
+            
+            // WICHTIG: Wenn keine Listen mehr, erstelle Standard
+            if (listOrder.length === 0) {
+                listOrder = ["Meine Liste"];
+                lists = { 
+                    "Meine Liste": { 
+                        todos: [], 
+                        type: "todo", 
+                        color: "#0a84ff" 
+                    } 
+                };
+            }
+            
+            currentList = listOrder[0];
             todos = lists[currentList].todos || [];
             listTitle.textContent = currentList;
             const newColor = lists[currentList].color || "#0a84ff";
