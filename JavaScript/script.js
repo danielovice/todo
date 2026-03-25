@@ -1,9 +1,9 @@
-import { auth, db, registerUser, loginUser, logoutUser, onAuthChanged } from './firebase-config.js';
-import { doc, setDoc, onSnapshot, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+/* -------------------------------   KONFIGURATION   ------------------------------- */
+const API_URL = 'http://10.0.0.27:3000';
+const userId = localStorage.getItem('todo_user_id') || 'user_' + Math.random().toString(36).substr(2, 9);
+localStorage.setItem('todo_user_id', userId);
 
-/* -------------------------------
-   VARIABLEN
---------------------------------- */
+/* -------------------------------   VARIABLEN   ------------------------------- */
 const input = document.getElementById("todoInput");
 const addBtn = document.getElementById("addBtn");
 const list = document.getElementById("todoList");
@@ -15,19 +15,6 @@ const menuBtn = document.getElementById("menuBtn");
 const menuDropdown = document.getElementById("menuDropdown");
 const addListBtn = document.getElementById("addListBtn");
 const autocompleteList = document.getElementById("autocompleteList");
-
-// Auth Elemente
-const authModal = document.getElementById("authModal");
-const authTitle = document.getElementById("authTitle");
-const authUsername = document.getElementById("authUsername");
-const authPassword = document.getElementById("authPassword");
-const togglePassword = document.getElementById("togglePassword");
-const rememberMe = document.getElementById("rememberMe");
-const authError = document.getElementById("authError");
-const authSubmitBtn = document.getElementById("authSubmitBtn");
-const authSwitchBtn = document.getElementById("authSwitchBtn");
-const authSwitchText = document.getElementById("authSwitchText");
-const logoutBtn = document.getElementById("logoutBtn");
 
 // Modal Elemente
 const addListModal = document.getElementById("addListModal");
@@ -51,251 +38,52 @@ let currentList = "Meine Liste";
 let filter = null;
 let selectedColor = "#0a84ff";
 let todos = lists["Meine Liste"].todos;
-let userId = null;
-let unsubscribe = null;
-let isRegistering = false;
 let currentListColor = "#0a84ff";
 let isInitialized = false;
 
-/* -------------------------------
-   AUTHENTIFIZIERUNG
---------------------------------- */
-function initAuth() {
-    // Sofort Standard-UI anzeigen
-    renderTabs();
-    render();
-    updateButtonColors("#0a84ff");
-
-    togglePassword.addEventListener("click", () => {
-        const type = authPassword.type === "password" ? "text" : "password";
-        authPassword.type = type;
-        togglePassword.textContent = type === "password" ? "👁" : "🙈";
-    });
-
-    authSwitchBtn.addEventListener("click", () => {
-        isRegistering = !isRegistering;
-        if (isRegistering) {
-            authTitle.textContent = "Registrieren";
-            authSubmitBtn.textContent = "Registrieren";
-            authSwitchText.textContent = "Bereits ein Konto?";
-            authSwitchBtn.textContent = "Anmelden";
-        } else {
-            authTitle.textContent = "Anmelden";
-            authSubmitBtn.textContent = "Anmelden";
-            authSwitchText.textContent = "Noch kein Konto?";
-            authSwitchBtn.textContent = "Registrieren";
-        }
-        authError.textContent = "";
-    });
-
-    authSubmitBtn.addEventListener("click", handleAuth);
-    
-    authPassword.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") handleAuth();
-    });
-    
-    authUsername.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") authPassword.focus();
-    });
-
-    logoutBtn.addEventListener("click", () => {
-        logoutUser().then(() => {
-            location.reload();
-        });
-    });
-
-    onAuthChanged(user => {
-        if (user) {
-            userId = user.uid;
-            console.log("Auth erfolgreich:", userId);
-            authModal.classList.remove("show");
-            authSubmitBtn.disabled = false;
-            loadFromFirebase();
-        } else {
-            console.log("Nicht authentifiziert");
-            authModal.classList.add("show");
-            isInitialized = false;
-        }
-    });
-}
-
-async function handleAuth() {
-    const username = authUsername.value.trim();
-    const password = authPassword.value;
-    const remember = rememberMe.checked;
-
-    if (!username || !password) {
-        authError.textContent = "Bitte Benutzername und Passwort eingeben";
-        return;
-    }
-
-    if (password.length < 6) {
-        authError.textContent = "Passwort muss mindestens 6 Zeichen haben";
-        return;
-    }
-
-    authSubmitBtn.disabled = true;
-    authError.textContent = "";
-
+/* -------------------------------   SERVER API   ------------------------------- */
+async function loadFromServer() {
     try {
-        if (isRegistering) {
-            await registerUser(username, password);
-        } else {
-            await loginUser(username, password, remember);
-        }
-    } catch (error) {
-        console.error("Auth Fehler:", error);
-        let message = "Ein Fehler ist aufgetreten";
-        switch (error.code) {
-            case 'auth/email-already-in-use':
-                message = "Benutzername bereits vergeben";
-                break;
-            case 'auth/invalid-email':
-                message = "Ungültiger Benutzername";
-                break;
-            case 'auth/weak-password':
-                message = "Passwort muss mindestens 6 Zeichen haben";
-                break;
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-            case 'auth/invalid-credential':
-                message = "Falscher Benutzername oder Passwort";
-                break;
-            case 'auth/too-many-requests':
-                message = "Zu viele Versuche. Bitte später erneut versuchen";
-                break;
-        }
-        authError.textContent = message;
-        authSubmitBtn.disabled = false;
-    }
-}
-
-/* -------------------------------
-   FIREBASE LADEN
---------------------------------- */
-async function loadFromFirebase() {
-    if (!userId) return;
-    
-    const userRef = doc(db, 'users', userId);
-    console.log("Lade Daten für:", userId);
-    
-    try {
-        const docSnap = await getDoc(userRef);
+        const response = await fetch(`${API_URL}/todos/${userId}`);
+        const data = await response.json();
         
-        if (!docSnap.exists()) {
-            console.log("Neuer Benutzer, erstelle Standarddaten");
-            const defaultData = {
-                lists: { 
-                    "Meine Liste": { 
-                        todos: [], 
-                        type: "todo", 
-                        color: "#0a84ff" 
-                    } 
-                },
-                listOrder: ["Meine Liste"],
-                currentList: "Meine Liste",
-                filter: null,
-                createdAt: new Date().toISOString()
-            };
-            
-            await setDoc(userRef, defaultData);
-            console.log("Standarddaten in Firebase erstellt");
-            
-            lists = defaultData.lists;
-            listOrder = defaultData.listOrder;
-            currentList = defaultData.currentList;
-            todos = [];
-            isInitialized = true;
-            
-            updateButtonColors("#0a84ff");
-            renderTabs();
-            render();
-        } else {
-            console.log("Bestehende Daten gefunden");
-            const data = docSnap.data();
-            
-            lists = data.lists || { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
+        if (data && data.lists) {
+            lists = data.lists;
             listOrder = data.listOrder || Object.keys(lists);
             currentList = data.currentList || listOrder[0] || "Meine Liste";
             filter = data.filter || null;
-            
-            for (const key in lists) {
-                if (!lists[key].todos && Array.isArray(lists[key])) {
-                    lists[key] = { todos: lists[key], type: "todo", color: "#0a84ff" };
-                }
-            }
-            
-            if (!lists[currentList]) {
-                currentList = listOrder[0] || "Meine Liste";
-            }
-            
             todos = lists[currentList]?.todos || [];
-            isInitialized = true;
-            
-            listTitle.textContent = currentList;
-            currentListColor = lists[currentList]?.color || "#0a84ff";
-            updateButtonColors(currentListColor);
-            renderTabs();
-            render();
+        } else {
+            // Erstmalig - speichere Standardwerte
+            await saveToServer();
         }
         
-        startRealtimeUpdates(userRef);
+        isInitialized = true;
+        listTitle.textContent = currentList;
+        currentListColor = lists[currentList]?.color || "#0a84ff";
+        updateButtonColors(currentListColor);
+        renderTabs();
+        render();
         
     } catch (err) {
         console.error("Fehler beim Laden:", err);
-        isInitialized = true;
-    }
-}
-
-function startRealtimeUpdates(userRef) {
-    if (unsubscribe) unsubscribe();
-    
-    unsubscribe = onSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            console.log("Echtzeit-Update erhalten");
-            
+        // Offline-Modus mit localStorage
+        const backup = localStorage.getItem('todos_backup');
+        if (backup) {
+            const data = JSON.parse(backup);
             lists = data.lists || lists;
             listOrder = data.listOrder || listOrder;
-            
-            if (lists[currentList]) {
-                todos = lists[currentList].todos || [];
-            } else {
-                currentList = data.currentList || listOrder[0] || "Meine Liste";
-                if (lists[currentList]) {
-                    todos = lists[currentList].todos || [];
-                }
-            }
-            
-            filter = data.filter || filter;
-            
-            listTitle.textContent = currentList;
-            currentListColor = lists[currentList]?.color || "#0a84ff";
-            updateButtonColors(currentListColor);
-            renderTabs();
-            render();
+            currentList = data.currentList || currentList;
+            todos = data.todos || todos;
         }
-    }, (error) => {
-        console.error("Snapshot Fehler:", error);
-    });
+        isInitialized = true;
+        renderTabs();
+        render();
+    }
 }
 
-/* -------------------------------
-   FIREBASE SPEICHERN
---------------------------------- */
-async function saveToFirebase() {
-    if (!userId) {
-        console.error("Kein User ID - nicht gespeichert");
-        return;
-    }
-    
-    if (!isInitialized) {
-        console.error("Noch nicht initialisiert - nicht gespeichert");
-        return;
-    }
-    
-    if (!Array.isArray(todos)) todos = [];
-    lists[currentList].todos = todos;
+async function saveToServer() {
+    if (!isInitialized) return;
     
     const data = {
         lists: lists,
@@ -305,20 +93,24 @@ async function saveToFirebase() {
         lastUpdate: new Date().toISOString()
     };
     
-    console.log("Speichere zu Firebase:", data);
-    
     try {
-        const userRef = doc(db, 'users', userId);
-        await setDoc(userRef, data);
-        console.log("Erfolgreich gespeichert!");
+        await fetch(`${API_URL}/todos/${userId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        // Backup in localStorage
+        localStorage.setItem('todos_backup', JSON.stringify(data));
+        
     } catch (err) {
-        console.error("Speichern FEHLGESCHLAGEN:", err);
+        console.error("Speichern fehlgeschlagen:", err);
+        // Offline: nur localStorage
+        localStorage.setItem('todos_backup', JSON.stringify(data));
     }
 }
 
-/* -------------------------------
-   BUTTON FARBEN
---------------------------------- */
+/* -------------------------------   BUTTON FARBEN   ------------------------------- */
 function updateButtonColors(color) {
     currentListColor = color;
     
@@ -365,9 +157,7 @@ function updateColorSelectionRing(selectedColor) {
     });
 }
 
-/* -------------------------------
-   MENÜ
---------------------------------- */
+/* -------------------------------   MENÜ   ------------------------------- */
 menuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     menuDropdown.classList.toggle("show");
@@ -379,9 +169,7 @@ document.addEventListener("click", (e) => {
     }
 });
 
-/* -------------------------------
-   LISTENNAME BEARBEITEN
---------------------------------- */
+/* -------------------------------   LISTENNAME BEARBEITEN   ------------------------------- */
 let lastTapTitle = 0;
 function handleTouchEditTitle() {
     const currentTime = new Date().getTime();
@@ -445,7 +233,7 @@ function startEditingListTitle() {
             listOrder.splice(idx, 1);
             listOrder.splice(idx, 0, newName);
             currentList = newName;
-            saveToFirebase();
+            saveToServer();
             renderTabs();
         }
         listTitle.textContent = currentList;
@@ -466,17 +254,13 @@ function startEditingListTitle() {
     });
 }
 
-/* -------------------------------
-   COUNTER
---------------------------------- */
+/* -------------------------------   COUNTER   ------------------------------- */
 function updateCounter() {
     const done = todos.filter(t => t.erledigt).length;
     counter.textContent = `${done} von ${todos.length} erledigt`;
 }
 
-/* -------------------------------
-   TODOS BEARBEITEN
---------------------------------- */
+/* -------------------------------   TODOS BEARBEITEN   ------------------------------- */
 let lastTapTodo = 0;
 function handleTouchEdit(span, index) {
     const currentTime = new Date().getTime();
@@ -499,7 +283,7 @@ function startEditing(spanElement, index) {
     const saveEdit = () => {
         const newText = inputField.value.trim();
         if (newText) todos[index].text = newText;
-        saveToFirebase();
+        saveToServer();
         render();
     };
 
@@ -508,9 +292,7 @@ function startEditing(spanElement, index) {
     inputField.addEventListener("keydown", e => { if (e.key === "Escape") render(); });
 }
 
-/* -------------------------------
-   KATEGORISIERUNG
---------------------------------- */
+/* -------------------------------   KATEGORISIERUNG   ------------------------------- */
 const internalSubCategories = {
     'Milchprodukte': [
         'milch', 'käse', 'joghurt', 'butter', 'sahne', 'quark', 'obers', 'topfen',
@@ -624,9 +406,7 @@ function getFoodSortOrder(internalCategory) {
     return order.indexOf(internalCategory);
 }
 
-/* -------------------------------
-   AUTOCOMPLETE
---------------------------------- */
+/* -------------------------------   AUTOCOMPLETE   ------------------------------- */
 function showAutocomplete(value) {
     const currentListData = lists[currentList];
     const isShoppingList = currentListData && currentListData.type === 'shopping';
@@ -697,9 +477,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-/* -------------------------------
-   ZAHLEN HERVORHEBEN
---------------------------------- */
+/* -------------------------------   ZAHLEN HERVORHEBEN   ------------------------------- */
 function highlightNumbers(text) {
     const numberPattern = /^(\d+\.?\d*\s*(g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?\s*)/i;
     const match = text.match(numberPattern);
@@ -713,9 +491,7 @@ function highlightNumbers(text) {
     return text;
 }
 
-/* -------------------------------
-   RENDERN
---------------------------------- */
+/* -------------------------------   RENDERN   ------------------------------- */
 function render() {
     list.innerHTML = "";
     
@@ -835,9 +611,7 @@ function createTodoElement(todo, index, isShoppingList = false) {
     list.appendChild(li);
 }
 
-/* -------------------------------
-   FILTER BUTTONS
---------------------------------- */
+/* -------------------------------   FILTER BUTTONS   ------------------------------- */
 function updateFilterButtons() {
     filterBtns.forEach(btn => {
         btn.classList.remove("active");
@@ -854,14 +628,8 @@ function updateFilterButtons() {
     });
 }
 
-/* -------------------------------
-   TODOS HINZUFÜGEN
---------------------------------- */
+/* -------------------------------   TODOS HINZUFÜGEN   ------------------------------- */
 function addTodo() {
-    if (!isInitialized) {
-        console.log("Nicht initialisiert, aber füge trotzdem hinzu");
-    }
-    
     const text = input.value.trim();
     if (!text) return;
     
@@ -873,7 +641,7 @@ function addTodo() {
     
     lists[currentList].todos = todos;
     
-    saveToFirebase();
+    saveToServer();
     render();
 }
 
@@ -882,9 +650,7 @@ input.addEventListener("keypress", e => {
     if (e.key === "Enter") addTodo(); 
 });
 
-/* -------------------------------
-   EVENT DELEGATION
---------------------------------- */
+/* -------------------------------   EVENT DELEGATION   ------------------------------- */
 list.addEventListener("click", e => {
     const target = e.target;
     const action = target.dataset.action;
@@ -897,21 +663,19 @@ list.addEventListener("click", e => {
     if (action === "toggle" && todos[idx]) {
         todos[idx].erledigt = !todos[idx].erledigt;
         lists[currentList].todos = todos;
-        saveToFirebase();
+        saveToServer();
         render();
     }
     
     if (action === "delete" && todos[idx]) {
         todos.splice(idx, 1);
         lists[currentList].todos = todos;
-        saveToFirebase();
+        saveToServer();
         render();
     }
 });
 
-/* -------------------------------
-   FILTER
---------------------------------- */
+/* -------------------------------   FILTER   ------------------------------- */
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
         const value = btn.dataset.filter;
@@ -920,14 +684,12 @@ filterBtns.forEach(btn => {
         } else {
             filter = value;
         }
-        saveToFirebase();
+        saveToServer();
         render();
     });
 });
 
-/* -------------------------------
-   DRAG & DROP
---------------------------------- */
+/* -------------------------------   DRAG & DROP   ------------------------------- */
 let draggedItemIndex = null;
 list.addEventListener("dragstart", e => {
     const handle = e.target.closest(".drag-handle");
@@ -963,7 +725,7 @@ list.addEventListener("drop", () => {
     if (newTodos.length === todos.length) { 
         todos = newTodos; 
         lists[currentList].todos = todos;
-        saveToFirebase(); 
+        saveToServer(); 
         render(); 
     } else render();
 });
@@ -978,9 +740,7 @@ function getDragAfterElement(container, y) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-/* -------------------------------
-   TOUCH DRAG
---------------------------------- */
+/* -------------------------------   TOUCH DRAG   ------------------------------- */
 let touchItem = null, touchStartY = 0, touchStartX = 0, hasMoved = false;
 
 function handleTouchStart(e) {
@@ -1022,16 +782,14 @@ function handleTouchEnd() {
         if (newTodos.length === todos.length) { 
             todos = newTodos; 
             lists[currentList].todos = todos;
-            saveToFirebase(); 
+            saveToServer(); 
             render(); 
         }
     }
     touchItem = null; hasMoved = false;
 }
 
-/* -------------------------------
-   LISTEN MENÜ
---------------------------------- */
+/* -------------------------------   LISTEN MENÜ   ------------------------------- */
 let listDragItem = null;
 let listTouchStartY = 0;
 let listHasMoved = false;
@@ -1062,7 +820,7 @@ function renderTabs() {
             updateButtonColors(listColor);
             renderTabs();
             render();
-            saveToFirebase();
+            saveToServer();
         };
         
         btn.addEventListener("touchstart", (e) => {
@@ -1120,7 +878,7 @@ function renderTabs() {
                 if (listHasMoved) {
                     const newOrder = Array.from(listTabs.querySelectorAll(".list-item")).map(item => item.dataset.name);
                     listOrder = newOrder;
-                    saveToFirebase();
+                    saveToServer();
                 }
                 
                 listDragItem = null;
@@ -1163,7 +921,7 @@ function renderTabs() {
             listTitle.textContent = currentList;
             const newColor = lists[currentList].color || "#0a84ff";
             updateButtonColors(newColor);
-            saveToFirebase();
+            saveToServer();
             renderTabs();
             render();
         };
@@ -1174,9 +932,7 @@ function renderTabs() {
     });
 }
 
-/* -------------------------------
-   MODAL
---------------------------------- */
+/* -------------------------------   MODAL   ------------------------------- */
 addListBtn.addEventListener("click", () => {
     listNameInput.value = "";
     listTypeSelect.value = "todo";
@@ -1250,7 +1006,7 @@ confirmAddListBtn.addEventListener("click", () => {
     
     updateButtonColors(selectedColor);
     
-    saveToFirebase();
+    saveToServer();
     renderTabs();
     render();
     addListModal.style.display = "none";
@@ -1260,14 +1016,5 @@ addListModal.addEventListener("click", (e) => {
     if (e.target === addListModal) addListModal.style.display = "none";
 });
 
-/* -------------------------------
-   SERVICE WORKER
---------------------------------- */
-if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js").catch(err => console.log("SW Fehler:", err));
-}
-
-/* -------------------------------
-   START
---------------------------------- */
-initAuth();
+/* -------------------------------   START   ------------------------------- */
+loadFromServer();
