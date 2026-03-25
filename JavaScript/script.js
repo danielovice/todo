@@ -1,3 +1,6 @@
+import { auth, db, registerUser, loginUser, logoutUser, onAuthChanged } from './firebase-config.js';
+import { doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+
 /* -------------------------------
    VARIABLEN
 --------------------------------- */
@@ -12,6 +15,19 @@ const menuBtn = document.getElementById("menuBtn");
 const menuDropdown = document.getElementById("menuDropdown");
 const addListBtn = document.getElementById("addListBtn");
 const autocompleteList = document.getElementById("autocompleteList");
+
+// Auth Elemente
+const authModal = document.getElementById("authModal");
+const authTitle = document.getElementById("authTitle");
+const authUsername = document.getElementById("authUsername");
+const authPassword = document.getElementById("authPassword");
+const togglePassword = document.getElementById("togglePassword");
+const rememberMe = document.getElementById("rememberMe");
+const authError = document.getElementById("authError");
+const authSubmitBtn = document.getElementById("authSubmitBtn");
+const authSwitchBtn = document.getElementById("authSwitchBtn");
+const authSwitchText = document.getElementById("authSwitchText");
+const logoutBtn = document.getElementById("logoutBtn");
 
 // Modal Elemente
 const addListModal = document.getElementById("addListModal");
@@ -28,57 +44,196 @@ let currentList = "Meine Liste";
 let filter = null;
 let selectedColor = "#0a84ff";
 let todos = [];
+let userId = null;
+let unsubscribe = null;
+let isRegistering = false;
+let currentListColor = "#0a84ff";
 
 /* -------------------------------
-   LOCAL STORAGE LADEN
+   AUTHENTIFIZIERUNG
 --------------------------------- */
-const savedLists = localStorage.getItem("todoLists");
-const savedListOrder = localStorage.getItem("listOrder");
-const savedCurrentList = localStorage.getItem("todoCurrentList");
-const savedFilter = localStorage.getItem("todoFilter");
+function initAuth() {
+    // Passwort anzeigen/verbergen
+    togglePassword.addEventListener("click", () => {
+        const type = authPassword.type === "password" ? "text" : "password";
+        authPassword.type = type;
+        togglePassword.textContent = type === "password" ? "👁" : "🙈";
+    });
 
-try {
-    lists = savedLists ? JSON.parse(savedLists) : { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
-} catch (e) {
-    lists = { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
+    // Login/Register umschalten
+    authSwitchBtn.addEventListener("click", () => {
+        isRegistering = !isRegistering;
+        if (isRegistering) {
+            authTitle.textContent = "Registrieren";
+            authSubmitBtn.textContent = "Registrieren";
+            authSwitchText.textContent = "Bereits ein Konto?";
+            authSwitchBtn.textContent = "Anmelden";
+        } else {
+            authTitle.textContent = "Anmelden";
+            authSubmitBtn.textContent = "Anmelden";
+            authSwitchText.textContent = "Noch kein Konto?";
+            authSwitchBtn.textContent = "Registrieren";
+        }
+        authError.textContent = "";
+    });
+
+    // Submit Handler
+    authSubmitBtn.addEventListener("click", handleAuth);
+    
+    // Enter Key Handler
+    authPassword.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") handleAuth();
+    });
+
+    // Logout
+    logoutBtn.addEventListener("click", () => {
+        logoutUser().then(() => {
+            location.reload();
+        });
+    });
+
+    // Auth State überwachen
+    onAuthChanged(user => {
+        if (user) {
+            userId = user.uid;
+            authModal.classList.remove("show");
+            loadFromFirebase();
+        } else {
+            authModal.classList.add("show");
+        }
+    });
 }
 
-if (savedListOrder) {
-    listOrder = JSON.parse(savedListOrder);
-} else {
-    listOrder = Object.keys(lists);
-}
+async function handleAuth() {
+    const username = authUsername.value.trim();
+    const password = authPassword.value;
+    const remember = rememberMe.checked;
 
-for (const key in lists) {
-    if (!lists[key].todos && Array.isArray(lists[key])) {
-        lists[key] = { todos: lists[key], type: "todo", color: "#0a84ff" };
+    if (!username || !password) {
+        authError.textContent = "Bitte Benutzername und Passwort eingeben";
+        return;
     }
-    if (!listOrder.includes(key)) {
-        listOrder.push(key);
+
+    authSubmitBtn.disabled = true;
+    authError.textContent = "";
+
+    try {
+        if (isRegistering) {
+            await registerUser(username, password);
+        } else {
+            await loginUser(username, password, remember);
+        }
+    } catch (error) {
+        console.error("Auth Fehler:", error);
+        let message = "Ein Fehler ist aufgetreten";
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                message = "Benutzername bereits vergeben";
+                break;
+            case 'auth/invalid-email':
+                message = "Ungültiger Benutzername";
+                break;
+            case 'auth/weak-password':
+                message = "Passwort muss mindestens 6 Zeichen haben";
+                break;
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+                message = "Falscher Benutzername oder Passwort";
+                break;
+            case 'auth/too-many-requests':
+                message = "Zu viele Versuche. Bitte später erneut versuchen";
+                break;
+        }
+        authError.textContent = message;
+    } finally {
+        authSubmitBtn.disabled = false;
     }
-}
-
-if (savedCurrentList && lists[savedCurrentList]) {
-    currentList = savedCurrentList;
-} else {
-    currentList = listOrder[0] || "Meine Liste";
-}
-
-if (savedFilter) {
-    filter = savedFilter;
-}
-
-listTitle.textContent = currentList;
-if (lists[currentList]) {
-    const listColor = lists[currentList].color || "#0a84ff";
-    updateButtonColors(listColor);
-    todos = lists[currentList].todos || [];
 }
 
 /* -------------------------------
-   BUTTON FARBEN AKTUALISIEREN
+   FIREBASE LADEN
+--------------------------------- */
+function loadFromFirebase() {
+    const userRef = doc(db, 'users', userId);
+    
+    unsubscribe = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            lists = data.lists || { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
+            listOrder = data.listOrder || Object.keys(lists);
+            currentList = data.currentList || listOrder[0] || "Meine Liste";
+            filter = data.filter || null;
+            
+            // Migration
+            for (const key in lists) {
+                if (!lists[key].todos && Array.isArray(lists[key])) {
+                    lists[key] = { todos: lists[key], type: "todo", color: "#0a84ff" };
+                }
+                if (!listOrder.includes(key)) {
+                    listOrder.push(key);
+                }
+            }
+            
+            if (!lists[currentList]) {
+                currentList = listOrder[0] || "Meine Liste";
+            }
+            
+            listTitle.textContent = currentList;
+            currentListColor = lists[currentList]?.color || "#0a84ff";
+            updateButtonColors(currentListColor);
+            todos = lists[currentList]?.todos || [];
+            
+            renderTabs();
+            render();
+        } else {
+            // Erster Start
+            const defaultData = {
+                lists: { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } },
+                listOrder: ["Meine Liste"],
+                currentList: "Meine Liste",
+                filter: null
+            };
+            setDoc(userRef, defaultData);
+            lists = defaultData.lists;
+            listOrder = defaultData.listOrder;
+            currentList = defaultData.currentList;
+            todos = [];
+            currentListColor = "#0a84ff";
+            updateButtonColors(currentListColor);
+            renderTabs();
+            render();
+        }
+    });
+}
+
+/* -------------------------------
+   FIREBASE SPEICHERN
+--------------------------------- */
+function saveToFirebase() {
+    if (!userId) return;
+    
+    if (!Array.isArray(todos)) todos = [];
+    lists[currentList].todos = todos;
+    
+    const data = {
+        lists: lists,
+        listOrder: listOrder,
+        currentList: currentList,
+        filter: filter
+    };
+    
+    setDoc(doc(db, 'users', userId), data).catch(err => {
+        console.error("Speichern fehlgeschlagen:", err);
+    });
+}
+
+/* -------------------------------
+   BUTTON FARBEN AKTUALISIEREN (Dynamisch)
 --------------------------------- */
 function updateButtonColors(color) {
+    currentListColor = color;
+    
+    // Hauptbuttons
     addListBtn.style.background = color;
     addListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
@@ -88,12 +243,24 @@ function updateButtonColors(color) {
     menuBtn.style.background = color;
     menuBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
     
+    // Filter Buttons
     filterBtns.forEach(btn => {
         if (!btn.classList.contains('active')) {
             btn.style.background = color;
             btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
         }
     });
+    
+    // Modal Save Button
+    confirmAddListBtn.style.background = color;
+    confirmAddListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+    
+    // Farbauswahl Ring aktualisieren
+    updateColorSelectionRing(color);
+    
+    // Touch-Highlight Farbe für Mobile setzen
+    document.documentElement.style.setProperty('--current-color', color);
+    document.documentElement.style.setProperty('--current-color-dark', adjustColor(color, -20));
 }
 
 function adjustColor(color, amount) {
@@ -102,6 +269,17 @@ function adjustColor(color, amount) {
     const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
     const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
     return `#${(0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+function updateColorSelectionRing(selectedColor) {
+    colorCircles.forEach(circle => {
+        circle.classList.remove("selected");
+        circle.style.boxShadow = "none";
+        if (circle.dataset.color === selectedColor) {
+            circle.classList.add("selected");
+            circle.style.boxShadow = `0 0 0 3px ${selectedColor}, 0 0 0 5px white`;
+        }
+    });
 }
 
 /* -------------------------------
@@ -113,11 +291,13 @@ menuBtn.addEventListener("click", e => {
 });
 
 document.addEventListener("click", e => {
-    if (!menuDropdown.contains(e.target) && e.target !== menuBtn) menuDropdown.style.display = "none";
+    if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
+        menuDropdown.style.display = "none";
+    }
 });
 
 /* -------------------------------
-   LISTENNAME BEARBEITEN
+   LISTENNAME BEARBEITEN (Fix für iPhone)
 --------------------------------- */
 let lastTapTitle = 0;
 function handleTouchEditTitle() {
@@ -132,10 +312,38 @@ listTitle.addEventListener("touchend", handleTouchEditTitle);
 
 function startEditingListTitle() {
     const currentName = currentList;
+    
+    // Input erstellen
     const inputField = document.createElement("input");
     inputField.type = "text";
     inputField.value = currentName;
     inputField.className = "edit-input";
+    
+    // Styles setzen um exakt gleich zu sein wie Titel
+    inputField.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        font-size: ${window.innerWidth <= 600 ? '28px' : '32px'};
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        padding: 0;
+        margin: 0;
+        border: 2px solid ${currentListColor};
+        border-radius: 12px;
+        background: #2a2a2e;
+        color: white;
+        outline: none;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+    
+    // Container vorbereiten
+    listTitle.style.position = "relative";
+    listTitle.style.height = window.innerWidth <= 600 ? "40px" : "48px";
     listTitle.textContent = "";
     listTitle.appendChild(inputField);
     inputField.focus();
@@ -147,6 +355,8 @@ function startEditingListTitle() {
             if (lists[newName]) {
                 alert("Eine Liste mit diesem Namen existiert bereits!");
                 listTitle.textContent = currentList;
+                listTitle.style.height = "";
+                listTitle.style.position = "";
                 return;
             }
             lists[newName] = lists[currentList];
@@ -155,27 +365,25 @@ function startEditingListTitle() {
             listOrder.splice(idx, 1);
             listOrder.splice(idx, 0, newName);
             currentList = newName;
-            saveLists();
+            saveToFirebase();
             renderTabs();
         }
         listTitle.textContent = currentList;
+        listTitle.style.height = "";
+        listTitle.style.position = "";
     };
 
     inputField.addEventListener("blur", saveEdit);
-    inputField.addEventListener("keypress", e => { if (e.key === "Enter") inputField.blur(); });
-    inputField.addEventListener("keydown", e => { if (e.key === "Escape") listTitle.textContent = currentList; });
-}
-
-/* -------------------------------
-   SPEICHERN
---------------------------------- */
-function saveLists() {
-    if (!Array.isArray(todos)) todos = [];
-    lists[currentList].todos = todos;
-    localStorage.setItem("todoLists", JSON.stringify(lists));
-    localStorage.setItem("listOrder", JSON.stringify(listOrder));
-    localStorage.setItem("todoCurrentList", currentList);
-    localStorage.setItem("todoFilter", filter);
+    inputField.addEventListener("keypress", e => { 
+        if (e.key === "Enter") inputField.blur(); 
+    });
+    inputField.addEventListener("keydown", e => { 
+        if (e.key === "Escape") {
+            listTitle.textContent = currentList;
+            listTitle.style.height = "";
+            listTitle.style.position = "";
+        }
+    });
 }
 
 /* -------------------------------
@@ -211,7 +419,7 @@ function startEditing(spanElement, index) {
     const saveEdit = () => {
         const newText = inputField.value.trim();
         if (newText) todos[index].text = newText;
-        saveLists();
+        saveToFirebase();
         render();
     };
 
@@ -221,14 +429,14 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------
-   🔥 INTERNE KATEGORISIERUNG
+   INTERNE KATEGORISIERUNG
 --------------------------------- */
 const internalSubCategories = {
     'Milchprodukte': [
         'milch', 'käse', 'joghurt', 'butter', 'sahne', 'quark', 'obers', 'topfen',
         'frischkäse', 'mozzarella', 'feta', 'parmesan', 'gouda', 'emmentaler',
         'camembert', 'brie', 'ricotta', 'hüttenkäse', 'schmelzkäse', 'margarine',
-        'eier', 'ei'  // 🔥 EIER HIERZUGEFÜGT
+        'eier', 'ei'
     ],
     'Obst': [
         'apfel', 'birne', 'banane', 'orange', 'mandarine', 'zitrone', 'limette',
@@ -458,11 +666,14 @@ function highlightNumbers(text) {
 }
 
 /* -------------------------------
-   RENDERN
+   RENDERN (FIX: Einkaufsliste Interaktionen)
 --------------------------------- */
 function render() {
     list.innerHTML = "";
-    if (!todos || !Array.isArray(todos)) { todos = []; saveLists(); }
+    if (!todos || !Array.isArray(todos)) { 
+        todos = []; 
+        saveToFirebase(); 
+    }
 
     const currentListData = lists[currentList];
     const isShoppingList = currentListData && currentListData.type === 'shopping';
@@ -479,7 +690,8 @@ function render() {
                 list.appendChild(categoryHeader);
 
                 categorizedItems[category].forEach(todo => {
-                    const originalIndex = todos.indexOf(todo);
+                    // WICHTIG: Original Index finden für korrekte Interaktion
+                    const originalIndex = todos.findIndex(t => t === todo);
                     createTodoElement(todo, originalIndex, isShoppingList);
                 });
             }
@@ -494,6 +706,23 @@ function render() {
 
     updateCounter();
     updateFilterButtons();
+    
+    // iPhone: Verhindere Scroll wenn Liste kurz
+    checkScrollable();
+}
+
+function checkScrollable() {
+    if (window.innerWidth <= 600) {
+        const app = document.querySelector('.app');
+        const listHeight = list.scrollHeight;
+        const appHeight = app.clientHeight;
+        
+        if (listHeight <= appHeight - 100) { // 100px Puffer für Input etc.
+            app.style.overflow = 'hidden';
+        } else {
+            app.style.overflowY = 'auto';
+        }
+    }
 }
 
 function createTodoElement(todo, index, isShoppingList = false) {
@@ -549,6 +778,11 @@ function updateFilterButtons() {
         } else {
             btn.classList.remove("active");
         }
+        // Farbe aktualisieren
+        if (!btn.classList.contains('active')) {
+            btn.style.background = currentListColor;
+            btn.style.boxShadow = `0 3px 0 ${adjustColor(currentListColor, -20)}`;
+        }
     });
 }
 
@@ -563,7 +797,7 @@ function addTodo() {
     input.blur();
     autocompleteList.classList.remove('show');
     autocompleteList.innerHTML = '';
-    saveLists();
+    saveToFirebase();
     render();
 }
 
@@ -571,28 +805,34 @@ addBtn.addEventListener("click", addTodo);
 input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
 
 /* -------------------------------
-   BUTTON PRESS EFFECT
+   BUTTON PRESS EFFECT (Dynamische Farbe)
 --------------------------------- */
 document.addEventListener("touchstart", function(e) {
-    if (e.target.tagName === "BUTTON") {
-        e.target.classList.add("press-effect");
+    const btn = e.target.closest("button");
+    if (btn) {
+        btn.classList.add("press-effect");
+        // Setze die aktuelle Listenfarbe für den Shadow
+        const color = btn.style.backgroundColor || currentListColor;
+        btn.style.setProperty('--press-color', adjustColor(color, -20));
     }
 }, { passive: true });
 
 document.addEventListener("touchend", function(e) {
-    if (e.target.tagName === "BUTTON") {
-        e.target.classList.remove("press-effect");
+    if (e.target.tagName === "BUTTON" || e.target.closest("button")) {
+        const btn = e.target.closest("button");
+        if (btn) btn.classList.remove("press-effect");
     }
 }, { passive: true });
 
 document.addEventListener("touchcancel", function(e) {
-    if (e.target.tagName === "BUTTON") {
-        e.target.classList.remove("press-effect");
+    if (e.target.tagName === "BUTTON" || e.target.closest("button")) {
+        const btn = e.target.closest("button");
+        if (btn) btn.classList.remove("press-effect");
     }
 }, { passive: true });
 
 /* -------------------------------
-   EVENT DELEGATION
+   EVENT DELEGATION (FIX für alle Listen)
 --------------------------------- */
 list.addEventListener("click", e => {
     const action = e.target.dataset.action;
@@ -601,12 +841,12 @@ list.addEventListener("click", e => {
     const idx = Number(index);
     if (action === "toggle" && todos[idx]) {
         todos[idx].erledigt = !todos[idx].erledigt;
-        saveLists();
+        saveToFirebase();
         render();
     }
     if (action === "delete" && todos[idx]) {
         todos.splice(idx, 1);
-        saveLists();
+        saveToFirebase();
         render();
     }
 });
@@ -625,7 +865,7 @@ filterBtns.forEach(btn => {
             filterBtns.forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
         }
-        saveLists();
+        saveToFirebase();
         render();
     });
 });
@@ -661,8 +901,15 @@ list.addEventListener("dragover", e => {
 list.addEventListener("drop", () => {
     const items = Array.from(list.children);
     const newTodos = [];
-    items.forEach(li => { const idx = Number(li.dataset.index); if (todos[idx] !== undefined) newTodos.push(todos[idx]); });
-    if (newTodos.length === todos.length) { todos = newTodos; saveLists(); render(); } else render();
+    items.forEach(li => { 
+        const idx = Number(li.dataset.index); 
+        if (todos[idx] !== undefined) newTodos.push(todos[idx]); 
+    });
+    if (newTodos.length === todos.length) { 
+        todos = newTodos; 
+        saveToFirebase(); 
+        render(); 
+    } else render();
 });
 
 function getDragAfterElement(container, y) {
@@ -696,7 +943,10 @@ function handleTouchMove(e) {
     const touch = e.touches[0];
     const moveY = Math.abs(touch.clientY - touchStartY);
     const moveX = Math.abs(touch.clientX - touchStartX);
-    if (!hasMoved && moveY > 10 && moveY > moveX) { hasMoved = true; touchItem.classList.add("dragging"); }
+    if (!hasMoved && moveY > 10 && moveY > moveX) { 
+        hasMoved = true; 
+        touchItem.classList.add("dragging"); 
+    }
     if (!hasMoved) return;
     e.preventDefault();
     const after = getDragAfterElement(list, touch.clientY);
@@ -709,8 +959,15 @@ function handleTouchEnd() {
     touchItem.classList.remove("dragging");
     if (hasMoved) {
         const items = Array.from(list.children), newTodos = [];
-        items.forEach(li => { const idx = Number(li.dataset.index); if (todos[idx] !== undefined) newTodos.push(todos[idx]); });
-        if (newTodos.length === todos.length) { todos = newTodos; saveLists(); render(); }
+        items.forEach(li => { 
+            const idx = Number(li.dataset.index); 
+            if (todos[idx] !== undefined) newTodos.push(todos[idx]); 
+        });
+        if (newTodos.length === todos.length) { 
+            todos = newTodos; 
+            saveToFirebase(); 
+            render(); 
+        }
     }
     touchItem = null; hasMoved = false;
 }
@@ -742,13 +999,13 @@ function renderTabs() {
         
         btn.onclick = () => {
             if (listHasMoved) return;
-            saveLists();
             currentList = name;
             todos = lists[name].todos || [];
             listTitle.textContent = name;
             updateButtonColors(listColor);
             renderTabs();
             render();
+            saveToFirebase();
         };
         
         btn.addEventListener("touchstart", (e) => {
@@ -806,7 +1063,7 @@ function renderTabs() {
                 if (listHasMoved) {
                     const newOrder = Array.from(listTabs.querySelectorAll(".list-item")).map(item => item.dataset.name);
                     listOrder = newOrder;
-                    localStorage.setItem("listOrder", JSON.stringify(listOrder));
+                    saveToFirebase();
                 }
                 
                 listDragItem = null;
@@ -838,7 +1095,7 @@ function renderTabs() {
             listTitle.textContent = currentList;
             const newColor = lists[currentList].color || "#0a84ff";
             updateButtonColors(newColor);
-            saveLists();
+            saveToFirebase();
             renderTabs();
             render();
         };
@@ -859,6 +1116,7 @@ addListBtn.addEventListener("click", () => {
     colorCircles[5].classList.add("selected");
     selectedColor = "#0a84ff";
     colorPreview.style.color = selectedColor;
+    updateColorSelectionRing(selectedColor);
     addListModal.style.display = "flex";
 });
 
@@ -875,6 +1133,7 @@ listTypeSelect.addEventListener("change", () => {
         if (greenCircle) {
             greenCircle.classList.add("selected");
             colorPreview.style.color = "#34c759";
+            updateColorSelectionRing("#34c759");
         }
     } else {
         listNameInput.value = "";
@@ -882,15 +1141,15 @@ listTypeSelect.addEventListener("change", () => {
         colorCircles.forEach(c => c.classList.remove("selected"));
         colorCircles[5].classList.add("selected");
         colorPreview.style.color = "#0a84ff";
+        updateColorSelectionRing("#0a84ff");
     }
 });
 
 colorCircles.forEach(circle => {
     circle.addEventListener("click", () => {
-        colorCircles.forEach(c => c.classList.remove("selected"));
-        circle.classList.add("selected");
         selectedColor = circle.dataset.color;
         colorPreview.style.color = selectedColor;
+        updateColorSelectionRing(selectedColor);
     });
 });
 
@@ -914,7 +1173,7 @@ confirmAddListBtn.addEventListener("click", () => {
     
     updateButtonColors(selectedColor);
     
-    saveLists();
+    saveToFirebase();
     renderTabs();
     render();
     addListModal.style.display = "none";
@@ -927,10 +1186,11 @@ addListModal.addEventListener("click", (e) => {
 /* -------------------------------
    SERVICE WORKER
 --------------------------------- */
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js").catch(err => console.log("SW Fehler:", err));
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js").catch(err => console.log("SW Fehler:", err));
+}
 
 /* -------------------------------
    START
 --------------------------------- */
-renderTabs();
-render();
+initAuth();
