@@ -38,7 +38,7 @@ const confirmAddListBtn = document.getElementById("confirmAddListBtn");
 const closeModalBtn = document.getElementById("closeModalBtn");
 const colorPreview = document.getElementById("colorPreview");
 
-// WICHTIG: Initialisiere mit Standardwerten sofort
+// Initialisiere mit Standardwerten SOFORT
 let lists = { 
     "Meine Liste": { 
         todos: [], 
@@ -140,10 +140,8 @@ async function handleAuth() {
     try {
         if (isRegistering) {
             await registerUser(username, password);
-            console.log("Registrierung erfolgreich");
         } else {
             await loginUser(username, password, remember);
-            console.log("Login erfolgreich");
         }
     } catch (error) {
         console.error("Auth Fehler:", error);
@@ -182,12 +180,10 @@ async function loadFromFirebase() {
     console.log("Lade Daten für:", userId);
     
     try {
-        // Prüfe ob Dokument existiert
         const docSnap = await getDoc(userRef);
         
         if (!docSnap.exists()) {
             console.log("Neuer Benutzer, erstelle Standarddaten");
-            // Erstelle Standarddaten
             const defaultData = {
                 lists: { 
                     "Meine Liste": { 
@@ -202,7 +198,6 @@ async function loadFromFirebase() {
                 createdAt: new Date().toISOString()
             };
             
-            // WICHTIG: Speichere sofort!
             await setDoc(userRef, defaultData);
             console.log("Standarddaten in Firebase erstellt");
             
@@ -224,7 +219,6 @@ async function loadFromFirebase() {
             currentList = data.currentList || listOrder[0] || "Meine Liste";
             filter = data.filter || null;
             
-            // Migration
             for (const key in lists) {
                 if (!lists[key].todos && Array.isArray(lists[key])) {
                     lists[key] = { todos: lists[key], type: "todo", color: "#0a84ff" };
@@ -245,12 +239,11 @@ async function loadFromFirebase() {
             render();
         }
         
-        // Starte Echtzeit-Updates
         startRealtimeUpdates(userRef);
         
     } catch (err) {
         console.error("Fehler beim Laden:", err);
-        isInitialized = true; // Trotzdem erlauben zu arbeiten
+        isInitialized = true;
     }
 }
 
@@ -262,11 +255,9 @@ function startRealtimeUpdates(userRef) {
             const data = docSnap.data();
             console.log("Echtzeit-Update erhalten");
             
-            // Nur updaten wenn nicht gerade selbst gespeichert wird
             lists = data.lists || lists;
             listOrder = data.listOrder || listOrder;
             
-            // Aktuelle Liste beibehalten wenn möglich
             if (lists[currentList]) {
                 todos = lists[currentList].todos || [];
             } else {
@@ -290,7 +281,7 @@ function startRealtimeUpdates(userRef) {
 }
 
 /* -------------------------------
-   FIREBASE SPEICHERN (KORRIGIERT)
+   FIREBASE SPEICHERN
 --------------------------------- */
 async function saveToFirebase() {
     if (!userId) {
@@ -303,7 +294,6 @@ async function saveToFirebase() {
         return;
     }
     
-    // WICHTIG: Aktuelle Todos in lists aktualisieren
     if (!Array.isArray(todos)) todos = [];
     lists[currentList].todos = todos;
     
@@ -370,7 +360,7 @@ function updateColorSelectionRing(selectedColor) {
         circle.style.boxShadow = "none";
         if (circle.dataset.color === selectedColor) {
             circle.classList.add("selected");
-            circle.style.boxShadow = `0 0 0 3px white, 0 0 0 6px ${selectedColor}`;
+            circle.style.boxShadow = `0 0 0 2px white, 0 0 0 4px ${selectedColor}`;
         }
     });
 }
@@ -737,7 +727,6 @@ function render() {
     const isShoppingList = currentListData && currentListData.type === 'shopping';
 
     if (isShoppingList) {
-        // Filter anwenden
         let displayTodos = todos;
         if (filter === "offen") {
             displayTodos = todos.filter(t => !t.erledigt);
@@ -745,7 +734,6 @@ function render() {
             displayTodos = todos.filter(t => t.erledigt);
         }
         
-        // Mit Original-Indizes für korrekte Interaktion
         const itemsWithIndex = displayTodos.map(todo => ({
             ...todo,
             originalIndex: todos.indexOf(todo)
@@ -794,7 +782,6 @@ function render() {
             }
         });
     } else {
-        // Normale Todo-Liste
         todos.forEach((todo, index) => {
             if (filter === "offen" && todo.erledigt) return;
             if (filter === "erledigt" && !todo.erledigt) return;
@@ -809,7 +796,6 @@ function render() {
 function createTodoElement(todo, index, isShoppingList = false) {
     const li = document.createElement("li");
     li.dataset.index = index;
-    li.style.transition = "transform 0.15s ease-out, box-shadow 0.15s ease-out";
 
     const leftDiv = document.createElement("div");
     leftDiv.className = "li-left";
@@ -873,8 +859,7 @@ function updateFilterButtons() {
 --------------------------------- */
 function addTodo() {
     if (!isInitialized) {
-        console.error("Noch nicht initialisiert");
-        return;
+        console.log("Nicht initialisiert, aber füge trotzdem hinzu");
     }
     
     const text = input.value.trim();
@@ -886,7 +871,6 @@ function addTodo() {
     autocompleteList.classList.remove('show');
     autocompleteList.innerHTML = '';
     
-    // WICHTIG: Zuerst in lists aktualisieren, dann speichern
     lists[currentList].todos = todos;
     
     saveToFirebase();
@@ -897,23 +881,6 @@ addBtn.addEventListener("click", addTodo);
 input.addEventListener("keypress", e => { 
     if (e.key === "Enter") addTodo(); 
 });
-
-/* -------------------------------
-   BUTTON EFFECT
---------------------------------- */
-document.addEventListener("touchstart", function(e) {
-    const btn = e.target.closest("button");
-    if (btn) {
-        btn.classList.add("press-effect");
-    }
-}, { passive: true });
-
-document.addEventListener("touchend", function(e) {
-    if (e.target.tagName === "BUTTON" || e.target.closest("button")) {
-        const btn = e.target.closest("button");
-        if (btn) btn.classList.remove("press-effect");
-    }
-}, { passive: true });
 
 /* -------------------------------
    EVENT DELEGATION
@@ -929,7 +896,6 @@ list.addEventListener("click", e => {
     
     if (action === "toggle" && todos[idx]) {
         todos[idx].erledigt = !todos[idx].erledigt;
-        // WICHTIG: In lists aktualisieren
         lists[currentList].todos = todos;
         saveToFirebase();
         render();
@@ -937,7 +903,6 @@ list.addEventListener("click", e => {
     
     if (action === "delete" && todos[idx]) {
         todos.splice(idx, 1);
-        // WICHTIG: In lists aktualisieren
         lists[currentList].todos = todos;
         saveToFirebase();
         render();
@@ -1182,7 +1147,6 @@ function renderTabs() {
             delete lists[name];
             listOrder = listOrder.filter(n => n !== name);
             
-            // WICHTIG: Wenn keine Listen mehr, erstelle Standard
             if (listOrder.length === 0) {
                 listOrder = ["Meine Liste"];
                 lists = { 
@@ -1295,37 +1259,6 @@ confirmAddListBtn.addEventListener("click", () => {
 addListModal.addEventListener("click", (e) => {
     if (e.target === addListModal) addListModal.style.display = "none";
 });
-
-// In der updateButtonColors Funktion am Ende hinzufügen:
-function updateButtonColors(color) {
-    currentListColor = color;
-    
-    addListBtn.style.background = color;
-    addListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
-    
-    addBtn.style.background = color;
-    addBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
-    
-    menuBtn.style.background = color;
-    menuBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
-    
-    filterBtns.forEach(btn => {
-        if (!btn.classList.contains('active')) {
-            btn.style.background = color;
-            btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
-        } else {
-            btn.style.border = "2px solid white";
-        }
-    });
-    
-    confirmAddListBtn.style.background = color;
-    confirmAddListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
-    
-    updateColorSelectionRing(color);
-    
-    // WICHTIG: iOS Status Bar Farbe aktualisieren
-    document.getElementById('themeColor').content = '#111111';
-}
 
 /* -------------------------------
    SERVICE WORKER
