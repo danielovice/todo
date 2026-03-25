@@ -35,10 +35,6 @@ export function logoutUser() {
     return signOut(auth);
 }
 
-export function getCurrentUser() {
-    return auth.currentUser;
-}
-
 export function onAuthChanged(callback) {
     return onAuthStateChanged(auth, callback);
 }
