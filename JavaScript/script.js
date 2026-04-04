@@ -44,7 +44,6 @@ function loadData() {
         resetToDefaults();
     }
 
-    // Fallback, falls Listen fehlen
     if (!lists[currentList] || listOrder.length === 0) {
         resetToDefaults();
     }
@@ -122,7 +121,7 @@ menuBtn.addEventListener("click", (e) => {
     menuDropdown.classList.toggle("show");
 });
 document.addEventListener("click", (e) => {
-    if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
+    if (!menuDropdown.contains(e.target) && e.target !== menuBtn && e.target !== addListBtn) {
         menuDropdown.classList.remove("show");
     }
 });
@@ -542,6 +541,7 @@ list.addEventListener("click", e => {
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
         const value = btn.dataset.filter;
+        // Toggle: Wenn schon aktiv, deaktivieren (= Alle anzeigen), sonst aktivieren
         filter = (filter === value) ? null : value;
         saveData();
         render();
