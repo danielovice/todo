@@ -314,14 +314,11 @@ function getFoodSortOrder(internalCategory) {
 
 /* -------------------------------   ZAHLEN HERVORHEBEN (FIX)   ------------------------------- */
 function highlightNumbers(text) {
-    // Strikt: Zahl + optionale Einheit + optionales Leerzeichen. Greift NICHT in das nächste Wort.
     const numberPattern = /^(\d+(?:\.?\d*)?\s*(?:g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?)\s*/i;
     const match = text.match(numberPattern);
     
     if (match) {
-        // Trimme Leerzeichen innerhalb des Matches
         const number = match[1].trim();
-        // Reststring ab Match-Ende, führende Leerzeichen entfernen
         const rest = text.slice(match[0].length).trimStart();
         return `<span class="quantity">${number}</span>${rest ? ' ' + rest : ''}`;
     }
@@ -537,7 +534,7 @@ function getDragAfterElement(container, y) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-/* -------------------------------   TOUCH DRAG   ------------------------------- */
+/* -------------------------------   TOUCH DRAG (TODOS)   ------------------------------- */
 let touchItem = null, touchStartY = 0, touchStartX = 0, hasMoved = false;
 function handleTouchStart(e) {
     const handle = e.target.closest(".drag-handle");
@@ -583,7 +580,7 @@ function handleTouchEnd() {
     touchItem = null; hasMoved = false;
 }
 
-/* -------------------------------   LISTEN MENÜ   ------------------------------- */
+/* -------------------------------   LISTEN MENÜ & DRAG   ------------------------------- */
 let listDragItem = null;
 let listTouchStartY = 0;
 let listHasMoved = false;
@@ -614,12 +611,20 @@ function renderTabs() {
             saveData();
         };
         
+        // FIX: Dynamische Schattenfarbe beim Greifen
         btn.addEventListener("touchstart", (e) => {
             listLongPressTimer = setTimeout(() => {
                 listDragItem = btn;
                 listTouchStartY = e.touches[0].clientY;
                 listHasMoved = false;
                 btn.classList.add("dragging");
+                
+                // Berechne RGBA aus Hex für korrekten Schatten
+                const r = parseInt(listColor.slice(1,3), 16);
+                const g = parseInt(listColor.slice(3,5), 16);
+                const b = parseInt(listColor.slice(5,7), 16);
+                btn.style.boxShadow = `0 15px 40px rgba(${r},${g},${b},0.4), 0 0 0 2px white`;
+                
                 document.body.style.overflow = 'hidden';
                 document.body.style.touchAction = 'none';
             }, 500);
@@ -660,6 +665,10 @@ function renderTabs() {
             document.body.style.touchAction = 'pan-y';
             if (listDragItem) {
                 btn.classList.remove("dragging");
+                // Originalen Schatten wiederherstellen
+                const listColor = lists[wrapper.dataset.name].color || "#0a84ff";
+                btn.style.boxShadow = `0 2px 0 ${adjustColor(listColor, -20)}`;
+                
                 if (listHasMoved) {
                     const newOrder = Array.from(listTabs.querySelectorAll(".list-item")).map(item => item.dataset.name);
                     listOrder = newOrder;
@@ -676,6 +685,8 @@ function renderTabs() {
             document.body.style.touchAction = 'pan-y';
             if (listDragItem) {
                 btn.classList.remove("dragging");
+                const listColor = lists[wrapper.dataset.name].color || "#0a84ff";
+                btn.style.boxShadow = `0 2px 0 ${adjustColor(listColor, -20)}`;
                 listDragItem = null;
                 listHasMoved = false;
             }
