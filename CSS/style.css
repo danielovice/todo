@@ -1,682 +1,782 @@
-/* -------------------------------------------
-GRUNDSTILE & RESET
--------------------------------------------- */
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-}
-html {
-    height: 100%;
-    background: #111;
-}
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #111;
-    color: white;
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-    touch-action: pan-y;
-}
-input, textarea, [contenteditable], .edit-input {
-    -webkit-user-select: text;
-    -khtml-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    user-select: text;
-    touch-action: auto;
-}
-/* -------------------------------------------
-PAGE CONTAINER
--------------------------------------------- */
-.page-container {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-    display: flex;
-    flex-direction: column;
-    background: #111;
-}
-/* -------------------------------------------
-NAVBAR
--------------------------------------------- */
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #111;
-    padding: 12px 20px;
-    border-bottom: 1px solid #222;
-    position: relative;
-    flex-shrink: 0;
-}
-.logo {
-    font-weight: 600;
-    font-size: 18px;
-    letter-spacing: -0.3px;
-}
-.nav-buttons {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-}
-.nav-add-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    font-weight: 600;
-    line-height: 1;
-}
-/* -------------------------------------------
-MENÜ DROPDOWN
--------------------------------------------- */
-#menuDropdown {
-    position: absolute;
-    right: 20px;
-    top: 60px;
-    background: #111;
-    border: 1px solid #222;
-    border-radius: 14px;
-    padding: 10px;
-    display: none;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 200px;
-    z-index: 100;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-    max-height: 60vh;
-    overflow-y: auto;
-}
-#menuDropdown.show {
-    display: flex;
-}
-.list-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 0;
-}
-.list-item button:first-child {
-    flex: 1;
-    text-align: left;
-    padding: 12px 14px;
-    font-size: 15px;
-    background: #0a84ff;
-    color: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 0 #0055cc;
-    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
-}
-.list-item button:first-child:active {
-    transform: translateY(1px);
-    box-shadow: none;
-}
-.list-item button:first-child.dragging {
-    opacity: 0.95;
-    transform: scale(1.04);
-    box-shadow: 0 15px 40px rgba(10, 132, 255, 0.4);
-    z-index: 10;
-    border: 2px solid white;
-}
-.list-item button:last-child {
-    padding: 12px 14px;
-    font-size: 15px;
-    min-width: 40px;
-    background: #ff453a;
-    box-shadow: 0 2px 0 #cc372e;
-}
-/* -------------------------------------------
-BUTTONS
--------------------------------------------- */
-button {
-    padding: 10px 14px;
-    border-radius: 12px;
-    border: none;
-    background: #0a84ff;
-    color: white;
-    cursor: pointer;
-    font-weight: 500;
-    box-shadow: 0 4px 0 #0060df;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    pointer-events: auto;
-    position: relative;
-    z-index: 10;
-}
-button.press-effect:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #0060df;
-}
-/* -------------------------------------------
-APP Container
--------------------------------------------- */
-.app {
-    width: 92%;
-    max-width: 520px;
-    background: #111;
-    border-radius: 22px;
-    padding: 18px;
-    box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7);
-    margin: 15px auto;
-    touch-action: pan-y;
-    position: relative;
-    flex: 1 0 auto;
-}
-h1, #listTitle {
-    text-align: center;
-    cursor: pointer;
-    margin: 0 0 20px 0;
-    font-weight: 700;
-    font-size: 32px;
-    letter-spacing: -0.5px;
-    white-space: normal;
-    word-break: break-word;
-    position: relative;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-#listTitle .edit-input {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    text-align: center;
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    padding: 0;
-    margin: 0;
-    border: 2px solid #0a84ff;
-    border-radius: 12px;
-    background: #2a2a2e;
-    color: white;
-    outline: none;
-    box-sizing: border-box;
-}
-/* -------------------------------------------
-INPUT Area
--------------------------------------------- */
-.input-area {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 12px;
-    position: relative;
-}
-input[type="text"] {
-    flex: 1;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: none;
-    background: #1c1c1e;
-    color: white;
-    font-size: 17px;
-    outline: none;
-}
-input[type="text"]::placeholder {
-    color: #666;
-}
-.autocomplete-list {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 80px;
-    background: #1c1c1e;
-    border-radius: 12px;
-    margin-top: 5px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 100;
-    display: none;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-}
-.autocomplete-list.show {
-    display: block;
-}
-.autocomplete-item {
-    padding: 12px 16px;
-    cursor: pointer;
-    border-bottom: 1px solid #2a2a2e;
-    transition: background 0.15s;
-}
-.autocomplete-item:last-child {
-    border-bottom: none;
-}
-.autocomplete-item:hover {
-    background: #2a2a2e;
-}
-.autocomplete-item .match {
-    color: #0a84ff;
-    font-weight: 600;
-}
-/* -------------------------------------------
-FILTER BUTTONS
--------------------------------------------- */
-.filters {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-}
-.filter-btn {
-    padding: 8px 14px;
-    font-size: 14px;
-    background: #0a84ff;
-    color: white;
-    box-shadow: 0 3px 0 #0060df;
-    border-radius: 10px;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-    border: 2px solid transparent;
-}
-.filter-btn.active {
-    border: 2px solid white !important;
-    transform: scale(1.08);
-    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
-}
-.filter-btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 #0060df;
-}
-/* -------------------------------------------
-COUNTER
--------------------------------------------- */
-#counter {
-    margin-bottom: 8px;
-    color: #999;
-    font-size: 14px;
-    text-align: center;
-}
-/* -------------------------------------------
-TODO LIST
--------------------------------------------- */
-ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    min-height: 0;
-}
-li {
-    display: flex;
-    align-items: center;
-    background: #1c1c1e;
-    padding: 11px 12px;
-    border-radius: 13px;
-    margin-bottom: 6px;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
-    touch-action: pan-y;
-    position: relative;
-}
-li.dragging {
-    opacity: 0.95;
-    transform: scale(1.08);
-    box-shadow: 0 20px 50px rgba(10, 132, 255, 0.5);
-    z-index: 10;
-    background: #2a2a2e;
-    border: 2px solid #0a84ff;
-    transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
-}
-.li-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-li input[type="checkbox"] {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    border: 2px solid #555;
-    background: #2a2a2e;
-    accent-color: transparent;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    flex-shrink: 0;
-}
-li input[type="checkbox"]:checked {
-    background: #0a84ff;
-    border-color: #0a84ff;
-}
-li input[type="checkbox"]:checked::after {
-    content: "✓";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(1);
-    color: white;
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1;
-}
-li span, li input.edit-input {
-    flex: 1;
-    word-break: break-word;
-    white-space: normal;
-    line-height: 24px;
-    text-align: left;
-    margin: 0 6px;
-    font-size: 17px;
-    min-width: 0;
-    cursor: pointer;
-    padding: 6px 8px;
-    border-radius: 6px;
-    display: inline-block;
-}
-li span .quantity {
-    color: #0a84ff;
-    font-weight: 600;
-}
-li span.erledigt {
-    text-decoration: line-through !important;
-    color: #777;
-    opacity: 0.85;
-}
-li span.erledigt .quantity {
-    text-decoration: line-through !important;
-    color: #0a84ff;
-    opacity: 0.6;
-}
-.drag-handle {
-    cursor: grab;
-    color: #666;
-    font-size: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 32px;
-    width: 36px;
-    border-radius: 8px;
-    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
-    touch-action: none;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-.drag-handle:active {
-    cursor: grabbing;
-    background: #3a3a3e;
-    color: #0a84ff;
-    transform: scale(1.1);
-}
-.erledigt {
-    text-decoration: line-through;
-    color: #777;
-    opacity: 0.85;
-}
-li button.delete {
-    background: #ff453a;
-    box-shadow: 0 3px 0 #cc372e;
-    padding: 8px 12px;
-    font-weight: 600;
-    min-width: 36px;
-}
-li button.delete:active {
-    box-shadow: 0 1px 0 #cc372e;
-}
-/* -------------------------------------------
-FOOTER
--------------------------------------------- */
-footer {
-    text-align: center;
-    font-size: 12px;
-    color: #777;
-    background: #111;
-    padding: 18px 15px;
-    border-top: 1px solid #222;
-    margin-top: auto;
-    flex-shrink: 0;
-}
-/* -------------------------------------------
-MODAL
--------------------------------------------- */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    animation: modalFadeIn 0.3s ease;
-}
-@keyframes modalFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-.modal-content {
-    background: #1c1c1e;
-    padding: 20px;
-    border-radius: 20px;
-    width: 90%;
-    max-width: 600px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    animation: modalSlideDown 0.3s ease;
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-@keyframes modalSlideDown {
-    from { transform: translateY(-100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.modal-header h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-}
-.modal-close {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: #ff3b30;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s;
-    box-shadow: 0 4px 0 #cc2f26;
-}
-.modal-close:active {
-    transform: scale(0.95);
-    box-shadow: 0 2px 0 #cc2f26;
-}
-.color-preview {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-    color: #0a84ff;
-    transition: color 0.3s;
-}
-#listNameInput {
-    padding: 16px;
-    border-radius: 12px;
-    border: none;
-    background: #2c2c2e;
-    color: white;
-    font-size: 17px;
-    text-align: center;
-    outline: none;
-}
-#listNameInput::placeholder {
-    color: #636366;
-}
-.list-type-selector {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #2c2c2e;
-    padding: 14px 16px;
-    border-radius: 12px;
-}
-.list-type-selector span {
-    color: white;
-    font-size: 17px;
-}
-.list-type-selector select {
-    background: transparent;
-    border: none;
-    color: #8e8e93;
-    font-size: 17px;
-    cursor: pointer;
-    outline: none;
-    text-align: right;
-}
-.color-label {
-    color: #8e8e93;
-    font-size: 15px;
-    margin-top: 8px;
-}
-.color-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-}
-.color-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 3px solid transparent;
-    transition: all 0.2s;
-    position: relative;
-}
-.color-circle:active {
-    transform: scale(0.9);
-}
-.color-circle.selected {
-    border-color: white;
-    box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
-}
-.category-header {
-    background: #2c2c2e;
-    padding: 10px 16px;
-    margin: 12px 0 6px 0;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 15px;
-    color: #8e8e93;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-/* -------------------------------------------
-MOBILE
--------------------------------------------- */
-@media (max-width: 600px) {
-    html, body {
-        position: fixed;
+// App Variablen
+let lists = {};
+let listOrder = [];
+let currentList = "";
+let todos = [];
+let filter = null;
+let selectedColor = "#0a84ff";
+let currentListColor = "#0a84ff";
+
+// DOM Elemente
+const list = document.getElementById("todoList");
+const filterBtns = document.querySelectorAll(".filter-btn");
+const counter = document.getElementById("counter");
+const listTabs = document.getElementById("listTabs");
+const listTitle = document.getElementById("listTitle");
+const menuBtn = document.getElementById("menuBtn");
+const menuDropdown = document.getElementById("menuDropdown");
+const addListBtn = document.getElementById("addListBtn");
+const addListModal = document.getElementById("addListModal");
+const listNameInput = document.getElementById("listNameInput");
+const listTypeSelect = document.getElementById("listTypeSelect");
+const colorCircles = document.querySelectorAll(".color-circle");
+const confirmAddListBtn = document.getElementById("confirmAddListBtn");
+const closeModalBtn = document.getElementById("closeModalBtn");
+const colorPreview = document.getElementById("colorPreview");
+const input = document.getElementById("todoInput");
+const addBtn = document.getElementById("addBtn");
+
+/* -------------------------------   DATEN (LOCALSTORAGE)   ------------------------------- */
+function loadData() {
+    const savedData = localStorage.getItem('todo_app_data');
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            lists = data.lists || {};
+            listOrder = data.listOrder || [];
+            currentList = data.currentList || "";
+        } catch (e) {
+            console.error("Fehler beim Laden:", e);
+            resetToDefaults();
+        }
+    } else {
+        resetToDefaults();
+    }
+
+    if (!lists[currentList] || listOrder.length === 0) {
+        resetToDefaults();
+    }
+
+    todos = lists[currentList]?.todos || [];
+    listTitle.textContent = currentList;
+    currentListColor = lists[currentList]?.color || "#0a84ff";
+    
+    updateButtonColors(currentListColor);
+    renderTabs();
+    render();
+}
+
+function resetToDefaults() {
+    lists = { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
+    listOrder = ["Meine Liste"];
+    currentList = "Meine Liste";
+    todos = [];
+}
+
+function saveData() {
+    const data = { lists, listOrder, currentList };
+    localStorage.setItem('todo_app_data', JSON.stringify(data));
+}
+
+/* -------------------------------   UI FUNKTIONEN   ------------------------------- */
+function updateButtonColors(color) {
+    currentListColor = color;
+    addListBtn.style.background = color;
+    addListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+
+    addBtn.style.background = color;
+    addBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+
+    menuBtn.style.background = color;
+    menuBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+
+    filterBtns.forEach(btn => {
+        if (!btn.classList.contains('active')) {
+            btn.style.background = color;
+            btn.style.boxShadow = `0 3px 0 ${adjustColor(color, -20)}`;
+        } else {
+            btn.style.border = "2px solid white";
+        }
+    });
+
+    confirmAddListBtn.style.background = color;
+    confirmAddListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
+
+    updateColorSelectionRing(color);
+}
+
+function adjustColor(color, amount) {
+    const num = parseInt(color.replace("#", ""), 16);
+    const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+    const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+    const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+    return `#${(0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+function updateColorSelectionRing(selectedColor) {
+    colorCircles.forEach(circle => {
+        circle.classList.remove("selected");
+        circle.style.boxShadow = "none";
+        if (circle.dataset.color === selectedColor) {
+            circle.classList.add("selected");
+            circle.style.boxShadow = `0 0 0 2px white, 0 0 0 4px ${selectedColor}`;
+        }
+    });
+}
+
+/* -------------------------------   MENU   ------------------------------- */
+menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menuDropdown.classList.toggle("show");
+});
+document.addEventListener("click", (e) => {
+    if (!menuDropdown.contains(e.target) && e.target !== menuBtn && e.target !== addListBtn) {
+        menuDropdown.classList.remove("show");
+    }
+});
+
+/* -------------------------------   LISTENNAME BEARBEITEN   ------------------------------- */
+let lastTapTitle = 0;
+function handleTouchEditTitle() {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTitle;
+    if (tapLength < 300 && tapLength > 0) startEditingListTitle();
+    lastTapTitle = currentTime;
+}
+listTitle.addEventListener("dblclick", startEditingListTitle);
+listTitle.addEventListener("touchend", handleTouchEditTitle);
+
+function startEditingListTitle() {
+    const currentName = currentList;
+    const inputField = document.createElement("input");
+    inputField.type = "text";
+    inputField.value = currentName;
+    inputField.className = "edit-input";
+
+    inputField.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
-        overflow: hidden;
-    }
-    .page-container {
-        height: 100%;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: none;
-    }
-    .navbar {
-        position: relative;
-        background: #111;
-        flex-shrink: 0;
-    }
-    #menuDropdown {
-        right: 10px;
-        top: 55px;
-        max-width: calc(100vw - 20px);
-    }
-    .app { 
-        margin: 10px auto; 
-        padding: 16px; 
-        border-radius: 20px;
-        width: calc(100% - 20px);
-        flex: 1 0 auto;
-    }
-    .input-area { 
-        flex-direction: column; 
-        gap: 8px; 
-    }
-    .input-area button { 
-        width: 100%; 
-        font-size: 17px; 
-        padding: 15px; 
-    }
-    h1 { 
-        font-size: 28px; 
-        margin-bottom: 18px; 
-    }
-    #listTitle .edit-input { 
-        font-size: 28px; 
-    }
-    li { 
-        padding: 12px 10px; 
-        margin-bottom: 5px; 
-        border-radius: 14px; 
-    }
-    li span, li input.edit-input { 
-        font-size: 17px; 
-    }
-    li input[type="checkbox"] { 
-        width: 28px; 
-        height: 28px; 
-    }
-    .drag-handle { 
-        font-size: 24px; 
-        width: 40px; 
-        height: 34px; 
-    }
-    .modal { 
-        padding-top: 40px; 
-    }
-    .modal-content { 
-        border-radius: 16px; 
-        padding: 16px; 
-    }
-    .color-circle { 
-        width: 36px; 
-        height: 36px; 
-    }
-    .color-circle.selected {
-        box-shadow: 0 0 0 2px white, 0 0 0 3px currentColor;
-    }
-    button:active {
-        transform: translateY(2px) !important;
-        box-shadow: 0 2px 0 #0060df !important;
-    }
-    footer {
-        display: none;
-    }
+        text-align: center;
+        font-size: ${window.innerWidth <= 600 ? '28px' : '32px'};
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        padding: 0;
+        margin: 0;
+        border: 2px solid ${currentListColor};
+        border-radius: 12px;
+        background: #2a2a2e;
+        color: white;
+        outline: none;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+    listTitle.style.position = "relative";
+    listTitle.style.height = window.innerWidth <= 600 ? "40px" : "48px";
+    listTitle.textContent = "";
+    listTitle.appendChild(inputField);
+    inputField.focus();
+    inputField.select();
+
+    const saveEdit = () => {
+        const newName = inputField.value.trim();
+        if (newName && newName !== currentName) {
+            if (lists[newName]) {
+                alert("Eine Liste mit diesem Namen existiert bereits!");
+                listTitle.textContent = currentList;
+                listTitle.style.height = "";
+                listTitle.style.position = "";
+                return;
+            }
+            lists[newName] = lists[currentList];
+            delete lists[currentList];
+            const idx = listOrder.indexOf(currentList);
+            listOrder.splice(idx, 1);
+            listOrder.splice(idx, 0, newName);
+            currentList = newName;
+            saveData();
+            renderTabs();
+        }
+        listTitle.textContent = currentList;
+        listTitle.style.height = "";
+        listTitle.style.position = "";
+    };
+
+    inputField.addEventListener("blur", saveEdit);
+    inputField.addEventListener("keypress", e => { 
+        if (e.key === "Enter") inputField.blur(); 
+    });
+    inputField.addEventListener("keydown", e => { 
+        if (e.key === "Escape") {
+            listTitle.textContent = currentList;
+            listTitle.style.height = "";
+            listTitle.style.position = "";
+        }
+    });
 }
+
+/* -------------------------------   COUNTER   ------------------------------- */
+function updateCounter() {
+    const done = todos.filter(t => t.erledigt).length;
+    counter.textContent = `${done} von ${todos.length} erledigt`;
+}
+
+/* -------------------------------   TODOS BEARBEITEN   ------------------------------- */
+let lastTapTodo = 0;
+function handleTouchEdit(span, index) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTodo;
+    if (tapLength < 300 && tapLength > 0) startEditing(span, index);
+    lastTapTodo = currentTime;
+}
+
+function startEditing(spanElement, index) {
+    if (todos[index].erledigt) return;
+    const currentText = todos[index].text;
+    const inputField = document.createElement("input");
+    inputField.type = "text";
+    inputField.value = currentText;
+    inputField.className = "edit-input";
+    spanElement.replaceWith(inputField);
+    inputField.focus();
+    inputField.select();
+    
+    const saveEdit = () => {
+        const newText = inputField.value.trim();
+        if (newText) todos[index].text = newText;
+        saveData();
+        render();
+    };
+
+    inputField.addEventListener("blur", saveEdit);
+    inputField.addEventListener("keypress", e => { if (e.key === "Enter") inputField.blur(); });
+    inputField.addEventListener("keydown", e => { if (e.key === "Escape") render(); });
+}
+
+/* -------------------------------   KATEGORISIERUNG   ------------------------------- */
+const internalSubCategories = {
+    'Milchprodukte': ['milch', 'käse', 'joghurt', 'butter', 'sahne', 'quark', 'obers', 'topfen', 'frischkäse', 'mozzarella', 'feta', 'parmesan', 'gouda', 'emmentaler', 'camembert', 'brie', 'ricotta', 'hüttenkäse', 'schmelzkäse', 'margarine', 'eier', 'ei'],
+    'Obst': ['apfel', 'birne', 'banane', 'orange', 'mandarine', 'zitrone', 'limette', 'traube', 'erdbeere', 'himbeere', 'heidelbeere', 'kirsche', 'pfirsich', 'marille', 'aprikose', 'melone', 'ananas', 'mango', 'kiwi', 'obst'],
+    'Gemüse': ['tomate', 'gurke', 'salat', 'karotte', 'zwiebel', 'kartoffel', 'erdapfel', 'paprika', 'zucchini', 'aubergine', 'brokkoli', 'blumenkohl', 'kohl', 'kraut', 'spinat', 'lauch', 'sellerie', 'spargel', 'kürbis', 'pilz', 'champignon', 'knoblauch', 'ingwer', 'gemüse'],
+    'Fleisch': ['fleisch', 'rind', 'schwein', 'kalb', 'lamm', 'huhn', 'hähnchen', 'pute', 'steak', 'schnitzel', 'fisch', 'lachs', 'thunfisch', 'garnelen', 'speck', 'schinken', 'bauch', 'ripperl', 'wammerl', 'beuschel'],
+    'Wurst': ['wurst', 'salami', 'extrawurst', 'fleischwurst', 'käsekrainer', 'debreziner', 'bratwurst', 'wiener', 'frankfurter', 'leberkäse', 'pastete'],
+    'Brot': ['brot', 'semmel', 'brötchen', 'weckerl', 'baguette', 'toast', 'vollkornbrot', 'mehl', 'nudel', 'pasta', 'spaghetti', 'reis', 'haferflocken', 'müsli', 'kuchen', 'torte', 'gebäck', 'kipferl', 'croissant', 'pizza'],
+    'Getränke': ['wasser', 'saft', 'cola', 'bier', 'wein', 'sekt', 'limonade', 'energy', 'kaffee', 'tee', 'kakao', 'schnaps', 'wodka', 'whisky', 'most'],
+    'Snacks': ['chips', 'flips', 'popcorn', 'cracker', 'salzstangen', 'nüsse', 'erdnuss', 'mandel', 'riegel', 'keks', 'gebäck', 'waffel', 'knabber'],
+    'Süßigkeiten': ['schokolade', 'schoki', 'nougat', 'bonbon', 'lutscher', 'kaugummi', 'gummibärchen', 'lakritz', 'nutella', 'eis', 'eiscreme'],
+    'Haushalt': ['papier', 'toilettenpapier', 'küchenpapier', 'taschentuch', 'tempo', 'reiniger', 'spülmittel', 'waschmittel', 'putzmittel', 'müllbeutel', 'schwamm', 'lappen', 'bürste', 'batterie', 'seife'],
+    'Sonstiges': ['geschenk', 'buch', 'tier', 'hundefutter', 'katzenfutter', 'apotheke', 'medizin', 'kosmetik', 'shampoo', 'creme', 'deo']
+};
+
+function getInternalCategory(itemText) {
+    const lowerText = itemText.toLowerCase().trim();
+    const compoundPatterns = [
+        { pattern: /(milch)(.*)(brot|semmel|weckerl)/i, category: 'Brot' },
+        { pattern: /(vollkorn)(.*)(brot)/i, category: 'Brot' },
+        { pattern: /(fleisch)(.*)(wurst)/i, category: 'Wurst' },
+        { pattern: /(schoko)(.*)(lade|riegel)/i, category: 'Süßigkeiten' },
+        { pattern: /(apfel)(.*)(saft)/i, category: 'Getränke' },
+        { pattern: /(tomaten)(.*)(saft|mark)/i, category: 'Gemüse' },
+        { pattern: /(schwein)(.*)(bauch|ripperl)/i, category: 'Fleisch' }
+    ];
+
+    for (const { pattern, category } of compoundPatterns) {
+        if (pattern.test(lowerText)) return category;
+    }
+
+    const endKeywords = {
+        'brot': 'Brot', 'semmel': 'Brot', 'weckerl': 'Brot',
+        'milch': 'Milchprodukte', 'käse': 'Milchprodukte',
+        'wurst': 'Wurst', 'fleisch': 'Fleisch', 'fisch': 'Fleisch',
+        'apfel': 'Obst', 'tomate': 'Gemüse', 'kartoffel': 'Gemüse',
+        'saft': 'Getränke', 'wasser': 'Getränke',
+        'schokolade': 'Süßigkeiten', 'eis': 'Süßigkeiten',
+        'papier': 'Haushalt', 'mittel': 'Haushalt'
+    };
+
+    for (const [ending, category] of Object.entries(endKeywords)) {
+        if (lowerText.endsWith(ending)) return category;
+    }
+
+    for (const [category, keywords] of Object.entries(internalSubCategories)) {
+        for (const keyword of keywords) {
+            if (lowerText.includes(keyword)) return category;
+        }
+    }
+    return 'Sonstiges';
+}
+
+function getMainCategory(itemText) {
+    const internal = getInternalCategory(itemText);
+    const foodCategories = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten'];
+    if (foodCategories.includes(internal)) return 'Lebensmittel';
+    if (internal === 'Haushalt') return 'Haushalt';
+    return 'Sonstiges';
+}
+
+function getFoodSortOrder(internalCategory) {
+    const order = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten'];
+    return order.indexOf(internalCategory);
+}
+
+/* -------------------------------   ZAHLEN HERVORHEBEN (FIX)   ------------------------------- */
+function highlightNumbers(text) {
+    // Strikt: Zahl + optionale Einheit + optionales Leerzeichen. Greift NICHT in das nächste Wort.
+    const numberPattern = /^(\d+(?:\.?\d*)?\s*(?:g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?)\s*/i;
+    const match = text.match(numberPattern);
+    
+    if (match) {
+        // Trimme Leerzeichen innerhalb des Matches
+        const number = match[1].trim();
+        // Reststring ab Match-Ende, führende Leerzeichen entfernen
+        const rest = text.slice(match[0].length).trimStart();
+        return `<span class="quantity">${number}</span>${rest ? ' ' + rest : ''}`;
+    }
+    return text;
+}
+
+/* -------------------------------   RENDERN   ------------------------------- */
+function render() {
+    list.innerHTML = "";
+    if (!todos || !Array.isArray(todos)) todos = [];
+
+    const currentListData = lists[currentList];
+    const isShoppingList = currentListData && currentListData.type === 'shopping';
+
+    if (isShoppingList) {
+        let displayTodos = todos;
+        if (filter === "offen") displayTodos = todos.filter(t => !t.erledigt);
+        else if (filter === "erledigt") displayTodos = todos.filter(t => t.erledigt);
+        
+        const itemsWithIndex = displayTodos.map(todo => ({
+            ...todo,
+            originalIndex: todos.indexOf(todo)
+        }));
+        
+        const categorizedItems = { 'Lebensmittel': [], 'Haushalt': [], 'Sonstiges': [] };
+        
+        itemsWithIndex.forEach(item => {
+            const mainCat = getMainCategory(item.text);
+            const internalCat = getInternalCategory(item.text);
+            categorizedItems[mainCat].push({
+                ...item,
+                _internalCategory: internalCat,
+                _sortOrder: getFoodSortOrder(internalCat)
+            });
+        });
+        
+        categorizedItems['Lebensmittel'].sort((a, b) => {
+            if (a._sortOrder !== b._sortOrder) return a._sortOrder - b._sortOrder;
+            return a.text.localeCompare(b.text);
+        });
+        categorizedItems['Haushalt'].sort((a, b) => a.text.localeCompare(b.text));
+        categorizedItems['Sonstiges'].sort((a, b) => a.text.localeCompare(b.text));
+        
+        ['Lebensmittel', 'Haushalt', 'Sonstiges'].forEach(category => {
+            if (categorizedItems[category].length > 0) {
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'category-header';
+                categoryHeader.textContent = category;
+                list.appendChild(categoryHeader);
+
+                categorizedItems[category].forEach(item => createTodoElement(item, item.originalIndex, true));
+            }
+        });
+    } else {
+        todos.forEach((todo, index) => {
+            if (filter === "offen" && todo.erledigt) return;
+            if (filter === "erledigt" && !todo.erledigt) return;
+            createTodoElement(todo, index, false);
+        });
+    }
+
+    updateCounter();
+    updateFilterButtons();
+}
+
+function createTodoElement(todo, index, isShoppingList = false) {
+    const li = document.createElement("li");
+    li.dataset.index = index;
+    const leftDiv = document.createElement("div");
+    leftDiv.className = "li-left";
+
+    const dragHandle = document.createElement("div");
+    dragHandle.className = "drag-handle";
+    dragHandle.draggable = true;
+    dragHandle.textContent = "⋮⋮";
+    dragHandle.addEventListener("touchstart", handleTouchStart, { passive: false });
+    dragHandle.addEventListener("touchmove", handleTouchMove, { passive: false });
+    dragHandle.addEventListener("touchend", handleTouchEnd, { passive: false });
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.dataset.action = "toggle";
+    checkbox.dataset.index = index;
+    if (todo.erledigt) checkbox.checked = true;
+
+    leftDiv.appendChild(dragHandle);
+    leftDiv.appendChild(checkbox);
+
+    const span = document.createElement("span");
+    span.innerHTML = isShoppingList ? highlightNumbers(todo.text) : todo.text;
+    if (todo.erledigt) span.classList.add("erledigt");
+    span.addEventListener("dblclick", e => { e.stopPropagation(); startEditing(span, index); });
+    span.addEventListener("touchend", e => { e.stopPropagation(); handleTouchEdit(span, index); });
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "X";
+    delBtn.className = "delete";
+    delBtn.dataset.action = "delete";
+    delBtn.dataset.index = index;
+
+    li.appendChild(leftDiv);
+    li.appendChild(span);
+    li.appendChild(delBtn);
+    list.appendChild(li);
+}
+
+/* -------------------------------   FILTER BUTTONS   ------------------------------- */
+function updateFilterButtons() {
+    filterBtns.forEach(btn => {
+        btn.classList.remove("active");
+        btn.style.background = currentListColor;
+        btn.style.boxShadow = `0 3px 0 ${adjustColor(currentListColor, -20)}`;
+        btn.style.border = "2px solid transparent";
+        btn.style.transform = "scale(1)";
+        if (btn.dataset.filter === filter) {
+            btn.classList.add("active");
+            btn.style.border = "2px solid white";
+            btn.style.transform = "scale(1.08)";
+        }
+    });
+}
+
+/* -------------------------------   TODOS HINZUFÜGEN   ------------------------------- */
+function addTodo() {
+    const text = input.value.trim();
+    if (!text) return;
+    todos.push({ text, erledigt: false });
+    input.value = "";
+    input.blur();
+    lists[currentList].todos = todos;
+    saveData();
+    render();
+}
+addBtn.addEventListener("click", addTodo);
+input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
+
+/* -------------------------------   EVENT DELEGATION   ------------------------------- */
+list.addEventListener("click", e => {
+    const target = e.target;
+    const action = target.dataset.action;
+    const index = target.dataset.index;
+    if (!action || index === undefined) return;
+    const idx = Number(index);
+
+    if (action === "toggle" && todos[idx]) {
+        todos[idx].erledigt = !todos[idx].erledigt;
+        lists[currentList].todos = todos;
+        saveData();
+        render();
+    }
+    if (action === "delete" && todos[idx]) {
+        todos.splice(idx, 1);
+        lists[currentList].todos = todos;
+        saveData();
+        render();
+    }
+});
+
+/* -------------------------------   FILTER   ------------------------------- */
+filterBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const value = btn.dataset.filter;
+        filter = (filter === value) ? null : value;
+        saveData();
+        render();
+    });
+});
+
+/* -------------------------------   DRAG & DROP   ------------------------------- */
+let draggedItemIndex = null;
+list.addEventListener("dragstart", e => {
+    const handle = e.target.closest(".drag-handle");
+    if (!handle) return;
+    const li = handle.closest("li");
+    if (!li) return;
+    draggedItemIndex = Number(li.dataset.index);
+    li.classList.add("dragging");
+});
+list.addEventListener("dragend", e => {
+    const li = e.target.closest("li");
+    if (li) li.classList.remove("dragging");
+    draggedItemIndex = null;
+});
+list.addEventListener("dragover", e => {
+    e.preventDefault();
+    const after = getDragAfterElement(list, e.clientY);
+    const dragging = document.querySelector(".dragging");
+    if (!dragging) return;
+    if (after == null) list.appendChild(dragging);
+    else list.insertBefore(dragging, after);
+});
+list.addEventListener("drop", () => {
+    const items = Array.from(list.children);
+    const newTodos = [];
+    items.forEach(li => {
+        const idx = Number(li.dataset.index);
+        if (todos[idx] !== undefined) newTodos.push(todos[idx]);
+    });
+    if (newTodos.length === todos.length) {
+        todos = newTodos;
+        lists[currentList].todos = todos;
+        saveData();
+        render();
+    } else render();
+});
+function getDragAfterElement(container, y) {
+    const elements = [...container.querySelectorAll("li:not(.dragging)")];
+    return elements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) return { offset, element: child };
+        else return closest;
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+/* -------------------------------   TOUCH DRAG   ------------------------------- */
+let touchItem = null, touchStartY = 0, touchStartX = 0, hasMoved = false;
+function handleTouchStart(e) {
+    const handle = e.target.closest(".drag-handle");
+    if (!handle) return;
+    const li = handle.closest("li");
+    if (!li) return;
+    touchItem = li;
+    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX;
+    hasMoved = false;
+}
+function handleTouchMove(e) {
+    if (!touchItem) return;
+    const touch = e.touches[0];
+    const moveY = Math.abs(touch.clientY - touchStartY);
+    const moveX = Math.abs(touch.clientX - touchStartX);
+    if (!hasMoved && moveY > 10 && moveY > moveX) {
+        hasMoved = true;
+        touchItem.classList.add("dragging");
+    }
+    if (!hasMoved) return;
+    e.preventDefault();
+    const after = getDragAfterElement(list, touch.clientY);
+    if (after == null) list.appendChild(touchItem);
+    else list.insertBefore(touchItem, after);
+}
+function handleTouchEnd() {
+    if (!touchItem) return;
+    touchItem.classList.remove("dragging");
+    if (hasMoved) {
+        const items = Array.from(list.children), newTodos = [];
+        items.forEach(li => {
+            const idx = Number(li.dataset.index);
+            if (todos[idx] !== undefined) newTodos.push(todos[idx]);
+        });
+        if (newTodos.length === todos.length) {
+            todos = newTodos;
+            lists[currentList].todos = todos;
+            saveData();
+            render();
+        }
+    }
+    touchItem = null; hasMoved = false;
+}
+
+/* -------------------------------   LISTEN MENÜ   ------------------------------- */
+let listDragItem = null;
+let listTouchStartY = 0;
+let listHasMoved = false;
+let listLongPressTimer = null;
+
+function renderTabs() {
+    listTabs.innerHTML = "";
+    listOrder.forEach((name) => {
+        if (!lists[name]) return;
+        const wrapper = document.createElement("div");
+        wrapper.className = "list-item";
+        wrapper.dataset.name = name;
+        
+        const btn = document.createElement("button");
+        btn.textContent = name;
+        const listColor = lists[name].color || "#0a84ff";
+        btn.style.background = listColor;
+        btn.style.boxShadow = `0 2px 0 ${adjustColor(listColor, -20)}`;
+        
+        btn.onclick = () => {
+            if (listHasMoved) return;
+            currentList = name;
+            todos = lists[name].todos || [];
+            listTitle.textContent = name;
+            updateButtonColors(listColor);
+            renderTabs();
+            render();
+            saveData();
+        };
+        
+        btn.addEventListener("touchstart", (e) => {
+            listLongPressTimer = setTimeout(() => {
+                listDragItem = btn;
+                listTouchStartY = e.touches[0].clientY;
+                listHasMoved = false;
+                btn.classList.add("dragging");
+                document.body.style.overflow = 'hidden';
+                document.body.style.touchAction = 'none';
+            }, 500);
+        });
+        
+        btn.addEventListener("touchmove", (e) => {
+            if (!listDragItem) return;
+            const touch = e.touches[0];
+            const moveY = Math.abs(touch.clientY - listTouchStartY);
+            if (moveY > 10) {
+                listHasMoved = true;
+                e.preventDefault();
+                e.stopPropagation();
+                const items = Array.from(listTabs.querySelectorAll(".list-item"));
+                const touchY = touch.clientY;
+                for (let item of items) {
+                    const itemBtn = item.querySelector("button:first-child");
+                    if (itemBtn === listDragItem) continue;
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (touchY < midY && item === items[0]) {
+                        listTabs.insertBefore(listDragItem.closest(".list-item"), item);
+                        break;
+                    } else if (touchY > midY && item === items[items.length - 1]) {
+                        listTabs.appendChild(listDragItem.closest(".list-item"));
+                        break;
+                    } else if (touchY > midY) {
+                        listTabs.insertBefore(listDragItem.closest(".list-item"), item.nextSibling);
+                        break;
+                    }
+                }
+            }
+        });
+        
+        btn.addEventListener("touchend", () => {
+            clearTimeout(listLongPressTimer);
+            document.body.style.overflow = '';
+            document.body.style.touchAction = 'pan-y';
+            if (listDragItem) {
+                btn.classList.remove("dragging");
+                if (listHasMoved) {
+                    const newOrder = Array.from(listTabs.querySelectorAll(".list-item")).map(item => item.dataset.name);
+                    listOrder = newOrder;
+                    saveData();
+                }
+                listDragItem = null;
+                listHasMoved = false;
+            }
+        });
+        
+        btn.addEventListener("touchcancel", () => {
+            clearTimeout(listLongPressTimer);
+            document.body.style.overflow = '';
+            document.body.style.touchAction = 'pan-y';
+            if (listDragItem) {
+                btn.classList.remove("dragging");
+                listDragItem = null;
+                listHasMoved = false;
+            }
+        });
+        
+        const del = document.createElement("button");
+        del.textContent = "X";
+        del.onclick = e => {
+            e.stopPropagation();
+            if (!confirm(`Liste "${name}" löschen?`)) return;
+            delete lists[name];
+            listOrder = listOrder.filter(n => n !== name);
+            
+            if (listOrder.length === 0) {
+                resetToDefaults();
+            } else {
+                currentList = listOrder[0];
+            }
+            todos = lists[currentList].todos || [];
+            listTitle.textContent = currentList;
+            const newColor = lists[currentList].color || "#0a84ff";
+            updateButtonColors(newColor);
+            saveData();
+            renderTabs();
+            render();
+        };
+        
+        wrapper.appendChild(btn);
+        wrapper.appendChild(del);
+        listTabs.appendChild(wrapper);
+    });
+}
+
+/* -------------------------------   MODAL   ------------------------------- */
+addListBtn.addEventListener("click", () => {
+    listNameInput.value = "";
+    listTypeSelect.value = "todo";
+    colorCircles.forEach(c => {
+        c.classList.remove("selected");
+        c.style.boxShadow = "none";
+    });
+    colorCircles[5].classList.add("selected");
+    selectedColor = "#0a84ff";
+    colorPreview.style.color = selectedColor;
+    updateColorSelectionRing(selectedColor);
+    addListModal.style.display = "flex";
+});
+
+closeModalBtn.addEventListener("click", () => {
+    addListModal.style.display = "none";
+});
+
+listTypeSelect.addEventListener("change", () => {
+    if (listTypeSelect.value === "shopping") {
+        listNameInput.value = "Einkaufsliste";
+        selectedColor = "#34c759";
+        colorCircles.forEach(c => { c.classList.remove("selected"); c.style.boxShadow = "none"; });
+        const greenCircle = document.querySelector('.color-circle[data-color="#34c759"]');
+        if (greenCircle) {
+            greenCircle.classList.add("selected");
+            colorPreview.style.color = "#34c759";
+            updateColorSelectionRing("#34c759");
+        }
+    } else {
+        listNameInput.value = "";
+        selectedColor = "#0a84ff";
+        colorCircles.forEach(c => { c.classList.remove("selected"); c.style.boxShadow = "none"; });
+        colorCircles[5].classList.add("selected");
+        colorPreview.style.color = "#0a84ff";
+        updateColorSelectionRing("#0a84ff");
+    }
+});
+
+colorCircles.forEach(circle => {
+    circle.addEventListener("click", () => {
+        selectedColor = circle.dataset.color;
+        colorPreview.style.color = selectedColor;
+        updateColorSelectionRing(selectedColor);
+    });
+});
+
+confirmAddListBtn.addEventListener("click", () => {
+    const name = listNameInput.value.trim();
+    if (!name) { alert("Bitte einen Namen eingeben!"); return; }
+    if (lists[name]) { alert("Liste existiert bereits!"); return; }
+    const type = listTypeSelect.value;
+    lists[name] = { todos: [], type: type, color: selectedColor };
+    listOrder.push(name);
+    currentList = name;
+    todos = lists[name].todos;
+    listTitle.textContent = name;
+    updateButtonColors(selectedColor);
+    saveData();
+    renderTabs();
+    render();
+    addListModal.style.display = "none";
+});
+
+addListModal.addEventListener("click", (e) => {
+    if (e.target === addListModal) addListModal.style.display = "none";
+});
+
+/* -------------------------------   START   ------------------------------- */
+loadData();
