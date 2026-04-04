@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TODO+ LocalStorage</title>
+    <title>TODO</title>
     <link rel="stylesheet" href="CSS/style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <nav class="navbar">
             <div class="logo">TODO</div>
             <div class="nav-buttons">
-                <button id="addListBtn" class="press-effect nav-add-btn" title="Neue Liste">+</button>
+                <button id="addListBtn" class="press-effect">+ Neue Liste</button>
                 <button id="menuBtn" class="press-effect">☰</button>
             </div>
         </nav>
@@ -26,7 +26,6 @@
                 <input type="text" id="todoInput" placeholder="Aufgabe hinzufügen..." autocomplete="off">
                 <button id="addBtn" class="press-effect">Hinzufügen</button>
             </div>
-            <div id="autocompleteList" class="autocomplete-list"></div>
 
             <div class="filters">
                 <button class="filter-btn press-effect" data-filter="offen">Offen</button>
@@ -51,7 +50,7 @@
             </div>
             <input type="text" id="listNameInput" placeholder="Listenname">
             <div class="list-type-selector">
-                <span>✓ Listentyp</span>
+                <span>Listentyp:</span>
                 <select id="listTypeSelect">
                     <option value="todo">Todo-Liste</option>
                     <option value="shopping">Einkaufsliste</option>
@@ -68,7 +67,7 @@
                 <div class="color-circle" data-color="#5856d6" style="background: #5856d6;"></div>
                 <div class="color-circle" data-color="#af52de" style="background: #af52de;"></div>
             </div>
-            <div class="color-preview" id="colorPreview"><h1>Aa</h1></div>
+            <div class="color-preview" id="colorPreview"></div>
             <button id="confirmAddListBtn" class="press-effect">Erstellen</button>
         </div>
     </div>
