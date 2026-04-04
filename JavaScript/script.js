@@ -1,10 +1,3 @@
-const API_URL = 'http://10.0.0.27:3000';
-
-// Auth Variablen
-let token = localStorage.getItem('todo_token');
-let currentUser = localStorage.getItem('todo_user');
-let isRegistering = false;
-
 // App Variablen
 let lists = {};
 let listOrder = [];
@@ -15,17 +8,6 @@ let selectedColor = "#0a84ff";
 let currentListColor = "#0a84ff";
 
 // DOM Elemente
-const authModal = document.getElementById("authModal");
-const authTitle = document.getElementById("authTitle");
-const authUsername = document.getElementById("authUsername");
-const authPassword = document.getElementById("authPassword");
-const authSubmitBtn = document.getElementById("authSubmitBtn");
-const authSwitchBtn = document.getElementById("authSwitchBtn");
-const authError = document.getElementById("authError");
-const logoutBtn = document.getElementById("logoutBtn");
-
-const input = document.getElementById("todoInput");
-const addBtn = document.getElementById("addBtn");
 const list = document.getElementById("todoList");
 const filterBtns = document.querySelectorAll(".filter-btn");
 const counter = document.getElementById("counter");
@@ -35,7 +17,6 @@ const menuBtn = document.getElementById("menuBtn");
 const menuDropdown = document.getElementById("menuDropdown");
 const addListBtn = document.getElementById("addListBtn");
 const autocompleteList = document.getElementById("autocompleteList");
-
 const addListModal = document.getElementById("addListModal");
 const listNameInput = document.getElementById("listNameInput");
 const listTypeSelect = document.getElementById("listTypeSelect");
@@ -43,208 +24,64 @@ const colorCircles = document.querySelectorAll(".color-circle");
 const confirmAddListBtn = document.getElementById("confirmAddListBtn");
 const closeModalBtn = document.getElementById("closeModalBtn");
 const colorPreview = document.getElementById("colorPreview");
+const input = document.getElementById("todoInput");
+const addBtn = document.getElementById("addBtn");
 
-/* -------------------------------   AUTH   ------------------------------- */
-
-function initAuth() {
-    // Event Listeners
-    authSubmitBtn.addEventListener("click", handleAuth);
-    authPassword.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") handleAuth();
-    });
-    authUsername.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") authPassword.focus();
-    });
-    
-    authSwitchBtn.addEventListener("click", () => {
-        isRegistering = !isRegistering;
-        updateAuthUI();
-    });
-    
-    logoutBtn.addEventListener("click", logout);
-    
-    // Prüfen ob eingeloggt
-    if (token && currentUser) {
-        loadData();
+/* -------------------------------   DATEN (LOCALSTORAGE)   ------------------------------- */
+function loadData() {
+    const savedData = localStorage.getItem('todo_app_data');
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            lists = data.lists || {};
+            listOrder = data.listOrder || [];
+            currentList = data.currentList || "";
+        } catch (e) {
+            console.error("Fehler beim Laden:", e);
+            resetToDefaults();
+        }
     } else {
-        showAuth();
+        resetToDefaults();
     }
+
+    // Fallback, falls Listen fehlen
+    if (!lists[currentList] || listOrder.length === 0) {
+        resetToDefaults();
+    }
+
+    todos = lists[currentList]?.todos || [];
+    listTitle.textContent = currentList;
+    currentListColor = lists[currentList]?.color || "#0a84ff";
+    
+    updateButtonColors(currentListColor);
+    renderTabs();
+    render();
 }
 
-function updateAuthUI() {
-    if (isRegistering) {
-        authTitle.textContent = "Registrieren";
-        authSubmitBtn.textContent = "Registrieren";
-        authSwitchBtn.textContent = "Bereits ein Konto? Anmelden";
-    } else {
-        authTitle.textContent = "Anmelden";
-        authSubmitBtn.textContent = "Anmelden";
-        authSwitchBtn.textContent = "Noch kein Konto? Registrieren";
-    }
-    authError.textContent = "";
+function resetToDefaults() {
+    lists = { "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } };
+    listOrder = ["Meine Liste"];
+    currentList = "Meine Liste";
+    todos = [];
 }
 
-function showAuth() {
-    authModal.classList.add("show");
-    updateAuthUI();
+function saveData() {
+    const data = { lists, listOrder, currentList };
+    localStorage.setItem('todo_app_data', JSON.stringify(data));
 }
 
-async function handleAuth() {
-    const username = authUsername.value.trim();
-    const password = authPassword.value;
-    
-    if (!username || !password) {
-        authError.textContent = "Bitte Name und Passwort eingeben";
-        return;
-    }
-    
-    if (password.length < 4) {
-        authError.textContent = "Passwort mindestens 4 Zeichen";
-        return;
-    }
-    
-    authSubmitBtn.disabled = true;
-    authError.textContent = "";
-    
-    const endpoint = isRegistering ? '/register' : '/login';
-    
-    try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-            authError.textContent = data.error || "Fehler";
-            authSubmitBtn.disabled = false;
-            return;
-        }
-        
-        if (isRegistering) {
-            // Nach Registrierung zum Login wechseln
-            isRegistering = false;
-            authPassword.value = "";
-            updateAuthUI();
-            authError.textContent = "Account erstellt! Bitte anmelden.";
-            authSubmitBtn.disabled = false;
-            return;
-        }
-        
-        // Login erfolgreich
-        token = data.token;
-        currentUser = data.username;
-        localStorage.setItem('todo_token', token);
-        localStorage.setItem('todo_user', currentUser);
-        
-        authModal.classList.remove("show");
-        authUsername.value = "";
-        authPassword.value = "";
-        authSubmitBtn.disabled = false;
-        
-        await loadData();
-        
-    } catch (e) {
-        authError.textContent = "Server nicht erreichbar";
-        authSubmitBtn.disabled = false;
-    }
-}
-
-async function logout() {
-    if (token) {
-        await fetch(`${API_URL}/logout`, {
-            method: 'POST',
-            headers: { 'Authorization': token }
-        });
-    }
-    
-    localStorage.removeItem('todo_token');
-    localStorage.removeItem('todo_user');
-    token = null;
-    currentUser = null;
-    
-    showAuth();
-}
-
-/* -------------------------------   DATEN   ------------------------------- */
-
-async function loadData() {
-    try {
-        const response = await fetch(`${API_URL}/data`, {
-            headers: { 'Authorization': token }
-        });
-        
-        if (!response.ok) {
-            console.log("Nicht eingeloggt, zeige Login");
-            logout();
-            return;
-        }
-        
-        const data = await response.json();
-        console.log("Geladen:", data); // Debug
-        
-        lists = data.lists || { 
-            "Meine Liste": { todos: [], type: "todo", color: "#0a84ff" } 
-        };
-        listOrder = data.listOrder || ["Meine Liste"];
-        currentList = data.currentList || "Meine Liste";
-        todos = lists[currentList]?.todos || [];
-        
-        listTitle.textContent = currentList;
-        currentListColor = lists[currentList]?.color || "#0a84ff";
-        
-        updateButtonColors(currentListColor);
-        renderTabs();
-        render();
-        
-    } catch (e) {
-        console.error("Laden fehlgeschlagen:", e);
-        logout();
-    }
-}
-
-async function saveData() {
-    const data = {
-        lists: lists,
-        listOrder: listOrder,
-        currentList: currentList
-    };
-    
-    console.log("Speichere:", data); // Debug
-    
-    try {
-        const response = await fetch(`${API_URL}/data`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': token 
-            },
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        console.log("Server antwortet:", result); // Debug
-        
-    } catch (e) {
-        console.error("Speichern fehlgeschlagen:", e);
-    }
-}
 /* -------------------------------   UI FUNKTIONEN   ------------------------------- */
-
 function updateButtonColors(color) {
     currentListColor = color;
-    
     addListBtn.style.background = color;
     addListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
-    
+
     addBtn.style.background = color;
     addBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
-    
+
     menuBtn.style.background = color;
     menuBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
-    
+
     filterBtns.forEach(btn => {
         if (!btn.classList.contains('active')) {
             btn.style.background = color;
@@ -253,15 +90,15 @@ function updateButtonColors(color) {
             btn.style.border = "2px solid white";
         }
     });
-    
+
     confirmAddListBtn.style.background = color;
     confirmAddListBtn.style.boxShadow = `0 4px 0 ${adjustColor(color, -20)}`;
-    
+
     updateColorSelectionRing(color);
 }
 
 function adjustColor(color, amount) {
-    const num = parseInt(color.replace("#",""), 16);
+    const num = parseInt(color.replace("#", ""), 16);
     const r = Math.max(0, Math.min(255, (num >> 16) + amount));
     const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
     const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
@@ -280,12 +117,10 @@ function updateColorSelectionRing(selectedColor) {
 }
 
 /* -------------------------------   MENU   ------------------------------- */
-
 menuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     menuDropdown.classList.toggle("show");
 });
-
 document.addEventListener("click", (e) => {
     if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
         menuDropdown.classList.remove("show");
@@ -293,7 +128,6 @@ document.addEventListener("click", (e) => {
 });
 
 /* -------------------------------   LISTENNAME BEARBEITEN   ------------------------------- */
-
 let lastTapTitle = 0;
 function handleTouchEditTitle() {
     const currentTime = new Date().getTime();
@@ -301,18 +135,16 @@ function handleTouchEditTitle() {
     if (tapLength < 300 && tapLength > 0) startEditingListTitle();
     lastTapTitle = currentTime;
 }
-
 listTitle.addEventListener("dblclick", startEditingListTitle);
 listTitle.addEventListener("touchend", handleTouchEditTitle);
 
 function startEditingListTitle() {
     const currentName = currentList;
-    
     const inputField = document.createElement("input");
     inputField.type = "text";
     inputField.value = currentName;
     inputField.className = "edit-input";
-    
+
     inputField.style.cssText = `
         position: absolute;
         top: 0;
@@ -333,7 +165,7 @@ function startEditingListTitle() {
         box-sizing: border-box;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     `;
-    
+
     listTitle.style.position = "relative";
     listTitle.style.height = window.innerWidth <= 600 ? "40px" : "48px";
     listTitle.textContent = "";
@@ -379,14 +211,12 @@ function startEditingListTitle() {
 }
 
 /* -------------------------------   COUNTER   ------------------------------- */
-
 function updateCounter() {
     const done = todos.filter(t => t.erledigt).length;
     counter.textContent = `${done} von ${todos.length} erledigt`;
 }
 
 /* -------------------------------   TODOS BEARBEITEN   ------------------------------- */
-
 let lastTapTodo = 0;
 function handleTouchEdit(span, index) {
     const currentTime = new Date().getTime();
@@ -405,7 +235,7 @@ function startEditing(spanElement, index) {
     spanElement.replaceWith(inputField);
     inputField.focus();
     inputField.select();
-
+    
     const saveEdit = () => {
         const newText = inputField.value.trim();
         if (newText) todos[index].text = newText;
@@ -419,65 +249,22 @@ function startEditing(spanElement, index) {
 }
 
 /* -------------------------------   KATEGORISIERUNG   ------------------------------- */
-
 const internalSubCategories = {
-    'Milchprodukte': [
-        'milch', 'käse', 'joghurt', 'butter', 'sahne', 'quark', 'obers', 'topfen',
-        'frischkäse', 'mozzarella', 'feta', 'parmesan', 'gouda', 'emmentaler',
-        'camembert', 'brie', 'ricotta', 'hüttenkäse', 'schmelzkäse', 'margarine',
-        'eier', 'ei'
-    ],
-    'Obst': [
-        'apfel', 'birne', 'banane', 'orange', 'mandarine', 'zitrone', 'limette',
-        'traube', 'erdbeere', 'himbeere', 'heidelbeere', 'kirsche', 'pfirsich',
-        'marille', 'aprikose', 'melone', 'ananas', 'mango', 'kiwi', 'obst'
-    ],
-    'Gemüse': [
-        'tomate', 'gurke', 'salat', 'karotte', 'zwiebel', 'kartoffel', 'erdapfel',
-        'paprika', 'zucchini', 'aubergine', 'brokkoli', 'blumenkohl', 'kohl', 'kraut',
-        'spinat', 'lauch', 'sellerie', 'spargel', 'kürbis', 'pilz', 'champignon',
-        'knoblauch', 'ingwer', 'gemüse'
-    ],
-    'Fleisch': [
-        'fleisch', 'rind', 'schwein', 'kalb', 'lamm', 'huhn', 'hähnchen', 'pute',
-        'steak', 'schnitzel', 'fisch', 'lachs', 'thunfisch', 'garnelen',
-        'speck', 'schinken', 'bauch', 'ripperl', 'wammerl', 'beuschel'
-    ],
-    'Wurst': [
-        'wurst', 'salami', 'extrawurst', 'fleischwurst', 'käsekrainer', 'debreziner',
-        'bratwurst', 'wiener', 'frankfurter', 'leberkäse', 'pastete'
-    ],
-    'Brot': [
-        'brot', 'semmel', 'brötchen', 'weckerl', 'baguette', 'toast', 'vollkornbrot',
-        'mehl', 'nudel', 'pasta', 'spaghetti', 'reis', 'haferflocken', 'müsli',
-        'kuchen', 'torte', 'gebäck', 'kipferl', 'croissant', 'pizza'
-    ],
-    'Getränke': [
-        'wasser', 'saft', 'cola', 'bier', 'wein', 'sekt', 'limonade', 'energy',
-        'kaffee', 'tee', 'kakao', 'schnaps', 'wodka', 'whisky', 'most'
-    ],
-    'Snacks': [
-        'chips', 'flips', 'popcorn', 'cracker', 'salzstangen', 'nüsse', 'erdnuss',
-        'mandel', 'riegel', 'keks', 'gebäck', 'waffel', 'knabber'
-    ],
-    'Süßigkeiten': [
-        'schokolade', 'schoki', 'nougat', 'bonbon', 'lutscher', 'kaugummi',
-        'gummibärchen', 'lakritz', 'nutella', 'eis', 'eiscreme'
-    ],
-    'Haushalt': [
-        'papier', 'toilettenpapier', 'küchenpapier', 'taschentuch', 'tempo',
-        'reiniger', 'spülmittel', 'waschmittel', 'putzmittel', 'müllbeutel',
-        'schwamm', 'lappen', 'bürste', 'batterie', 'seife'
-    ],
-    'Sonstiges': [
-        'geschenk', 'buch', 'tier', 'hundefutter', 'katzenfutter', 'apotheke',
-        'medizin', 'kosmetik', 'shampoo', 'creme', 'deo'
-    ]
+    'Milchprodukte': ['milch', 'käse', 'joghurt', 'butter', 'sahne', 'quark', 'obers', 'topfen', 'frischkäse', 'mozzarella', 'feta', 'parmesan', 'gouda', 'emmentaler', 'camembert', 'brie', 'ricotta', 'hüttenkäse', 'schmelzkäse', 'margarine', 'eier', 'ei'],
+    'Obst': ['apfel', 'birne', 'banane', 'orange', 'mandarine', 'zitrone', 'limette', 'traube', 'erdbeere', 'himbeere', 'heidelbeere', 'kirsche', 'pfirsich', 'marille', 'aprikose', 'melone', 'ananas', 'mango', 'kiwi', 'obst'],
+    'Gemüse': ['tomate', 'gurke', 'salat', 'karotte', 'zwiebel', 'kartoffel', 'erdapfel', 'paprika', 'zucchini', 'aubergine', 'brokkoli', 'blumenkohl', 'kohl', 'kraut', 'spinat', 'lauch', 'sellerie', 'spargel', 'kürbis', 'pilz', 'champignon', 'knoblauch', 'ingwer', 'gemüse'],
+    'Fleisch': ['fleisch', 'rind', 'schwein', 'kalb', 'lamm', 'huhn', 'hähnchen', 'pute', 'steak', 'schnitzel', 'fisch', 'lachs', 'thunfisch', 'garnelen', 'speck', 'schinken', 'bauch', 'ripperl', 'wammerl', 'beuschel'],
+    'Wurst': ['wurst', 'salami', 'extrawurst', 'fleischwurst', 'käsekrainer', 'debreziner', 'bratwurst', 'wiener', 'frankfurter', 'leberkäse', 'pastete'],
+    'Brot': ['brot', 'semmel', 'brötchen', 'weckerl', 'baguette', 'toast', 'vollkornbrot', 'mehl', 'nudel', 'pasta', 'spaghetti', 'reis', 'haferflocken', 'müsli', 'kuchen', 'torte', 'gebäck', 'kipferl', 'croissant', 'pizza'],
+    'Getränke': ['wasser', 'saft', 'cola', 'bier', 'wein', 'sekt', 'limonade', 'energy', 'kaffee', 'tee', 'kakao', 'schnaps', 'wodka', 'whisky', 'most'],
+    'Snacks': ['chips', 'flips', 'popcorn', 'cracker', 'salzstangen', 'nüsse', 'erdnuss', 'mandel', 'riegel', 'keks', 'gebäck', 'waffel', 'knabber'],
+    'Süßigkeiten': ['schokolade', 'schoki', 'nougat', 'bonbon', 'lutscher', 'kaugummi', 'gummibärchen', 'lakritz', 'nutella', 'eis', 'eiscreme'],
+    'Haushalt': ['papier', 'toilettenpapier', 'küchenpapier', 'taschentuch', 'tempo', 'reiniger', 'spülmittel', 'waschmittel', 'putzmittel', 'müllbeutel', 'schwamm', 'lappen', 'bürste', 'batterie', 'seife'],
+    'Sonstiges': ['geschenk', 'buch', 'tier', 'hundefutter', 'katzenfutter', 'apotheke', 'medizin', 'kosmetik', 'shampoo', 'creme', 'deo']
 };
 
 function getInternalCategory(itemText) {
     const lowerText = itemText.toLowerCase().trim();
-    
     const compoundPatterns = [
         { pattern: /(milch)(.*)(brot|semmel|weckerl)/i, category: 'Brot' },
         { pattern: /(vollkorn)(.*)(brot)/i, category: 'Brot' },
@@ -487,11 +274,11 @@ function getInternalCategory(itemText) {
         { pattern: /(tomaten)(.*)(saft|mark)/i, category: 'Gemüse' },
         { pattern: /(schwein)(.*)(bauch|ripperl)/i, category: 'Fleisch' }
     ];
-    
+
     for (const { pattern, category } of compoundPatterns) {
         if (pattern.test(lowerText)) return category;
     }
-    
+
     const endKeywords = {
         'brot': 'Brot', 'semmel': 'Brot', 'weckerl': 'Brot',
         'milch': 'Milchprodukte', 'käse': 'Milchprodukte',
@@ -501,31 +288,25 @@ function getInternalCategory(itemText) {
         'schokolade': 'Süßigkeiten', 'eis': 'Süßigkeiten',
         'papier': 'Haushalt', 'mittel': 'Haushalt'
     };
-    
+
     for (const [ending, category] of Object.entries(endKeywords)) {
         if (lowerText.endsWith(ending)) return category;
     }
-    
+
     for (const [category, keywords] of Object.entries(internalSubCategories)) {
         for (const keyword of keywords) {
             if (lowerText.includes(keyword)) return category;
         }
     }
-    
     return 'Sonstiges';
 }
 
 function getMainCategory(itemText) {
     const internal = getInternalCategory(itemText);
     const foodCategories = ['Milchprodukte', 'Obst', 'Gemüse', 'Fleisch', 'Wurst', 'Brot', 'Getränke', 'Snacks', 'Süßigkeiten'];
-    
-    if (foodCategories.includes(internal)) {
-        return 'Lebensmittel';
-    } else if (internal === 'Haushalt') {
-        return 'Haushalt';
-    } else {
-        return 'Sonstiges';
-    }
+    if (foodCategories.includes(internal)) return 'Lebensmittel';
+    if (internal === 'Haushalt') return 'Haushalt';
+    return 'Sonstiges';
 }
 
 function getFoodSortOrder(internalCategory) {
@@ -534,70 +315,56 @@ function getFoodSortOrder(internalCategory) {
 }
 
 /* -------------------------------   AUTOCOMPLETE   ------------------------------- */
-
 function showAutocomplete(value) {
     const currentListData = lists[currentList];
     const isShoppingList = currentListData && currentListData.type === 'shopping';
-    
     if (!isShoppingList || !value || value.length < 2) {
         autocompleteList.classList.remove('show');
         autocompleteList.innerHTML = '';
         return;
     }
-    
+
     const allShoppingItems = new Set();
     for (const listName in lists) {
         if (lists[listName].type === 'shopping') {
-            lists[listName].todos.forEach(todo => {
-                allShoppingItems.add(todo.text);
-            });
+            lists[listName].todos.forEach(todo => allShoppingItems.add(todo.text));
         }
     }
-    
+
     const suggestions = Array.from(allShoppingItems).filter(item => 
-        item.toLowerCase().includes(value.toLowerCase()) && 
-        item.toLowerCase() !== value.toLowerCase()
+        item.toLowerCase().includes(value.toLowerCase()) && item.toLowerCase() !== value.toLowerCase()
     ).slice(0, 5);
-    
+
     if (suggestions.length === 0) {
         autocompleteList.classList.remove('show');
         autocompleteList.innerHTML = '';
         return;
     }
-    
+
     autocompleteList.innerHTML = '';
     suggestions.forEach(suggestion => {
         const div = document.createElement('div');
         div.className = 'autocomplete-item';
-        
         const regex = new RegExp(`(${value})`, 'gi');
-        const highlighted = suggestion.replace(regex, '<span class="match">$1</span>');
-        div.innerHTML = highlighted;
-        
+        div.innerHTML = suggestion.replace(regex, '<span class="match">$1</span>');
         div.addEventListener('click', () => {
             input.value = suggestion;
             autocompleteList.classList.remove('show');
             autocompleteList.innerHTML = '';
             input.focus();
         });
-        
         autocompleteList.appendChild(div);
     });
-    
     autocompleteList.classList.add('show');
 }
 
-input.addEventListener('input', (e) => {
-    showAutocomplete(e.target.value);
-});
-
+input.addEventListener('input', (e) => showAutocomplete(e.target.value));
 input.addEventListener('blur', () => {
     setTimeout(() => {
         autocompleteList.classList.remove('show');
         autocompleteList.innerHTML = '';
     }, 200);
 });
-
 document.addEventListener('click', (e) => {
     if (!input.contains(e.target) && !autocompleteList.contains(e.target)) {
         autocompleteList.classList.remove('show');
@@ -606,92 +373,69 @@ document.addEventListener('click', (e) => {
 });
 
 /* -------------------------------   ZAHLEN HERVORHEBEN   ------------------------------- */
-
 function highlightNumbers(text) {
-    const numberPattern = /^(\d+\.?\d*\s*(g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?\s*)/i;
+    const numberPattern = /^(\d+.?\d*\s*(g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?\s*)/i;
     const match = text.match(numberPattern);
-    
     if (match) {
         const number = match[1];
         const rest = text.slice(number.length);
         return `<span class="quantity">${number}</span>${rest}`;
     }
-    
     return text;
 }
 
 /* -------------------------------   RENDERN   ------------------------------- */
-
 function render() {
     list.innerHTML = "";
-    
-    if (!todos || !Array.isArray(todos)) { 
-        todos = []; 
-    }
+    if (!todos || !Array.isArray(todos)) todos = [];
 
     const currentListData = lists[currentList];
     const isShoppingList = currentListData && currentListData.type === 'shopping';
 
     if (isShoppingList) {
         let displayTodos = todos;
-        if (filter === "offen") {
-            displayTodos = todos.filter(t => !t.erledigt);
-        } else if (filter === "erledigt") {
-            displayTodos = todos.filter(t => t.erledigt);
-        }
+        if (filter === "offen") displayTodos = todos.filter(t => !t.erledigt);
+        else if (filter === "erledigt") displayTodos = todos.filter(t => t.erledigt);
         
         const itemsWithIndex = displayTodos.map(todo => ({
             ...todo,
             originalIndex: todos.indexOf(todo)
         }));
         
-        const categorizedItems = {
-            'Lebensmittel': [],
-            'Haushalt': [],
-            'Sonstiges': []
-        };
+        const categorizedItems = { 'Lebensmittel': [], 'Haushalt': [], 'Sonstiges': [] };
         
         itemsWithIndex.forEach(item => {
             const mainCat = getMainCategory(item.text);
             const internalCat = getInternalCategory(item.text);
-            const sortOrder = getFoodSortOrder(internalCat);
-            
             categorizedItems[mainCat].push({
                 ...item,
                 _internalCategory: internalCat,
-                _sortOrder: sortOrder
+                _sortOrder: getFoodSortOrder(internalCat)
             });
         });
         
         categorizedItems['Lebensmittel'].sort((a, b) => {
-            if (a._sortOrder !== b._sortOrder) {
-                return a._sortOrder - b._sortOrder;
-            }
+            if (a._sortOrder !== b._sortOrder) return a._sortOrder - b._sortOrder;
             return a.text.localeCompare(b.text);
         });
-        
         categorizedItems['Haushalt'].sort((a, b) => a.text.localeCompare(b.text));
         categorizedItems['Sonstiges'].sort((a, b) => a.text.localeCompare(b.text));
         
-        const displayOrder = ['Lebensmittel', 'Haushalt', 'Sonstiges'];
-        
-        displayOrder.forEach(category => {
+        ['Lebensmittel', 'Haushalt', 'Sonstiges'].forEach(category => {
             if (categorizedItems[category].length > 0) {
                 const categoryHeader = document.createElement('div');
                 categoryHeader.className = 'category-header';
                 categoryHeader.textContent = category;
                 list.appendChild(categoryHeader);
 
-                categorizedItems[category].forEach(item => {
-                    createTodoElement(item, item.originalIndex, isShoppingList);
-                });
+                categorizedItems[category].forEach(item => createTodoElement(item, item.originalIndex, true));
             }
         });
     } else {
         todos.forEach((todo, index) => {
             if (filter === "offen" && todo.erledigt) return;
             if (filter === "erledigt" && !todo.erledigt) return;
-            createTodoElement(todo, index, isShoppingList);
+            createTodoElement(todo, index, false);
         });
     }
 
@@ -702,7 +446,6 @@ function render() {
 function createTodoElement(todo, index, isShoppingList = false) {
     const li = document.createElement("li");
     li.dataset.index = index;
-
     const leftDiv = document.createElement("div");
     leftDiv.className = "li-left";
 
@@ -742,7 +485,6 @@ function createTodoElement(todo, index, isShoppingList = false) {
 }
 
 /* -------------------------------   FILTER BUTTONS   ------------------------------- */
-
 function updateFilterButtons() {
     filterBtns.forEach(btn => {
         btn.classList.remove("active");
@@ -750,7 +492,6 @@ function updateFilterButtons() {
         btn.style.boxShadow = `0 3px 0 ${adjustColor(currentListColor, -20)}`;
         btn.style.border = "2px solid transparent";
         btn.style.transform = "scale(1)";
-        
         if (btn.dataset.filter === filter) {
             btn.classList.add("active");
             btn.style.border = "2px solid white";
@@ -760,46 +501,35 @@ function updateFilterButtons() {
 }
 
 /* -------------------------------   TODOS HINZUFÜGEN   ------------------------------- */
-
 function addTodo() {
     const text = input.value.trim();
     if (!text) return;
-    
     todos.push({ text, erledigt: false });
     input.value = "";
     input.blur();
     autocompleteList.classList.remove('show');
     autocompleteList.innerHTML = '';
-    
     lists[currentList].todos = todos;
-    
     saveData();
     render();
 }
-
 addBtn.addEventListener("click", addTodo);
-input.addEventListener("keypress", e => { 
-    if (e.key === "Enter") addTodo(); 
-});
+input.addEventListener("keypress", e => { if (e.key === "Enter") addTodo(); });
 
 /* -------------------------------   EVENT DELEGATION   ------------------------------- */
-
 list.addEventListener("click", e => {
     const target = e.target;
     const action = target.dataset.action;
     const index = target.dataset.index;
-    
     if (!action || index === undefined) return;
-    
     const idx = Number(index);
-    
+
     if (action === "toggle" && todos[idx]) {
         todos[idx].erledigt = !todos[idx].erledigt;
         lists[currentList].todos = todos;
         saveData();
         render();
     }
-    
     if (action === "delete" && todos[idx]) {
         todos.splice(idx, 1);
         lists[currentList].todos = todos;
@@ -809,22 +539,16 @@ list.addEventListener("click", e => {
 });
 
 /* -------------------------------   FILTER   ------------------------------- */
-
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
         const value = btn.dataset.filter;
-        if (filter === value) {
-            filter = null;
-        } else {
-            filter = value;
-        }
+        filter = (filter === value) ? null : value;
         saveData();
         render();
     });
 });
 
 /* -------------------------------   DRAG & DROP   ------------------------------- */
-
 let draggedItemIndex = null;
 list.addEventListener("dragstart", e => {
     const handle = e.target.closest(".drag-handle");
@@ -834,13 +558,11 @@ list.addEventListener("dragstart", e => {
     draggedItemIndex = Number(li.dataset.index);
     li.classList.add("dragging");
 });
-
 list.addEventListener("dragend", e => {
     const li = e.target.closest("li");
     if (li) li.classList.remove("dragging");
     draggedItemIndex = null;
 });
-
 list.addEventListener("dragover", e => {
     e.preventDefault();
     const after = getDragAfterElement(list, e.clientY);
@@ -849,22 +571,20 @@ list.addEventListener("dragover", e => {
     if (after == null) list.appendChild(dragging);
     else list.insertBefore(dragging, after);
 });
-
 list.addEventListener("drop", () => {
     const items = Array.from(list.children);
     const newTodos = [];
-    items.forEach(li => { 
-        const idx = Number(li.dataset.index); 
-        if (todos[idx] !== undefined) newTodos.push(todos[idx]); 
+    items.forEach(li => {
+        const idx = Number(li.dataset.index);
+        if (todos[idx] !== undefined) newTodos.push(todos[idx]);
     });
-    if (newTodos.length === todos.length) { 
-        todos = newTodos; 
+    if (newTodos.length === todos.length) {
+        todos = newTodos;
         lists[currentList].todos = todos;
-        saveData(); 
-        render(); 
+        saveData();
+        render();
     } else render();
 });
-
 function getDragAfterElement(container, y) {
     const elements = [...container.querySelectorAll("li:not(.dragging)")];
     return elements.reduce((closest, child) => {
@@ -876,9 +596,7 @@ function getDragAfterElement(container, y) {
 }
 
 /* -------------------------------   TOUCH DRAG   ------------------------------- */
-
 let touchItem = null, touchStartY = 0, touchStartX = 0, hasMoved = false;
-
 function handleTouchStart(e) {
     const handle = e.target.closest(".drag-handle");
     if (!handle) return;
@@ -889,15 +607,14 @@ function handleTouchStart(e) {
     touchStartX = e.touches[0].clientX;
     hasMoved = false;
 }
-
 function handleTouchMove(e) {
     if (!touchItem) return;
     const touch = e.touches[0];
     const moveY = Math.abs(touch.clientY - touchStartY);
     const moveX = Math.abs(touch.clientX - touchStartX);
-    if (!hasMoved && moveY > 10 && moveY > moveX) { 
-        hasMoved = true; 
-        touchItem.classList.add("dragging"); 
+    if (!hasMoved && moveY > 10 && moveY > moveX) {
+        hasMoved = true;
+        touchItem.classList.add("dragging");
     }
     if (!hasMoved) return;
     e.preventDefault();
@@ -905,28 +622,26 @@ function handleTouchMove(e) {
     if (after == null) list.appendChild(touchItem);
     else list.insertBefore(touchItem, after);
 }
-
 function handleTouchEnd() {
     if (!touchItem) return;
     touchItem.classList.remove("dragging");
     if (hasMoved) {
         const items = Array.from(list.children), newTodos = [];
-        items.forEach(li => { 
-            const idx = Number(li.dataset.index); 
-            if (todos[idx] !== undefined) newTodos.push(todos[idx]); 
+        items.forEach(li => {
+            const idx = Number(li.dataset.index);
+            if (todos[idx] !== undefined) newTodos.push(todos[idx]);
         });
-        if (newTodos.length === todos.length) { 
-            todos = newTodos; 
+        if (newTodos.length === todos.length) {
+            todos = newTodos;
             lists[currentList].todos = todos;
-            saveData(); 
-            render(); 
+            saveData();
+            render();
         }
     }
     touchItem = null; hasMoved = false;
 }
 
 /* -------------------------------   LISTEN MENÜ   ------------------------------- */
-
 let listDragItem = null;
 let listTouchStartY = 0;
 let listHasMoved = false;
@@ -934,17 +649,14 @@ let listLongPressTimer = null;
 
 function renderTabs() {
     listTabs.innerHTML = "";
-    
     listOrder.forEach((name) => {
         if (!lists[name]) return;
-        
         const wrapper = document.createElement("div");
         wrapper.className = "list-item";
         wrapper.dataset.name = name;
         
         const btn = document.createElement("button");
         btn.textContent = name;
-        
         const listColor = lists[name].color || "#0a84ff";
         btn.style.background = listColor;
         btn.style.boxShadow = `0 2px 0 ${adjustColor(listColor, -20)}`;
@@ -979,17 +691,13 @@ function renderTabs() {
                 listHasMoved = true;
                 e.preventDefault();
                 e.stopPropagation();
-                
                 const items = Array.from(listTabs.querySelectorAll(".list-item"));
                 const touchY = touch.clientY;
-                
                 for (let item of items) {
                     const itemBtn = item.querySelector("button:first-child");
                     if (itemBtn === listDragItem) continue;
-                    
                     const rect = item.getBoundingClientRect();
                     const midY = rect.top + rect.height / 2;
-                    
                     if (touchY < midY && item === items[0]) {
                         listTabs.insertBefore(listDragItem.closest(".list-item"), item);
                         break;
@@ -1008,16 +716,13 @@ function renderTabs() {
             clearTimeout(listLongPressTimer);
             document.body.style.overflow = '';
             document.body.style.touchAction = 'pan-y';
-            
             if (listDragItem) {
                 btn.classList.remove("dragging");
-                
                 if (listHasMoved) {
                     const newOrder = Array.from(listTabs.querySelectorAll(".list-item")).map(item => item.dataset.name);
                     listOrder = newOrder;
                     saveData();
                 }
-                
                 listDragItem = null;
                 listHasMoved = false;
             }
@@ -1043,17 +748,10 @@ function renderTabs() {
             listOrder = listOrder.filter(n => n !== name);
             
             if (listOrder.length === 0) {
-                listOrder = ["Meine Liste"];
-                lists = { 
-                    "Meine Liste": { 
-                        todos: [], 
-                        type: "todo", 
-                        color: "#0a84ff" 
-                    } 
-                };
+                resetToDefaults();
+            } else {
+                currentList = listOrder[0];
             }
-            
-            currentList = listOrder[0];
             todos = lists[currentList].todos || [];
             listTitle.textContent = currentList;
             const newColor = lists[currentList].color || "#0a84ff";
@@ -1070,7 +768,6 @@ function renderTabs() {
 }
 
 /* -------------------------------   MODAL   ------------------------------- */
-
 addListBtn.addEventListener("click", () => {
     listNameInput.value = "";
     listTypeSelect.value = "todo";
@@ -1093,10 +790,7 @@ listTypeSelect.addEventListener("change", () => {
     if (listTypeSelect.value === "shopping") {
         listNameInput.value = "Einkaufsliste";
         selectedColor = "#34c759";
-        colorCircles.forEach(c => {
-            c.classList.remove("selected");
-            c.style.boxShadow = "none";
-        });
+        colorCircles.forEach(c => { c.classList.remove("selected"); c.style.boxShadow = "none"; });
         const greenCircle = document.querySelector('.color-circle[data-color="#34c759"]');
         if (greenCircle) {
             greenCircle.classList.add("selected");
@@ -1106,10 +800,7 @@ listTypeSelect.addEventListener("change", () => {
     } else {
         listNameInput.value = "";
         selectedColor = "#0a84ff";
-        colorCircles.forEach(c => {
-            c.classList.remove("selected");
-            c.style.boxShadow = "none";
-        });
+        colorCircles.forEach(c => { c.classList.remove("selected"); c.style.boxShadow = "none"; });
         colorCircles[5].classList.add("selected");
         colorPreview.style.color = "#0a84ff";
         updateColorSelectionRing("#0a84ff");
@@ -1126,24 +817,15 @@ colorCircles.forEach(circle => {
 
 confirmAddListBtn.addEventListener("click", () => {
     const name = listNameInput.value.trim();
-    if (!name) {
-        alert("Bitte einen Namen eingeben!");
-        return;
-    }
-    if (lists[name]) {
-        alert("Liste existiert bereits!");
-        return;
-    }
+    if (!name) { alert("Bitte einen Namen eingeben!"); return; }
+    if (lists[name]) { alert("Liste existiert bereits!"); return; }
     const type = listTypeSelect.value;
-    
     lists[name] = { todos: [], type: type, color: selectedColor };
     listOrder.push(name);
     currentList = name;
     todos = lists[name].todos;
     listTitle.textContent = name;
-    
     updateButtonColors(selectedColor);
-    
     saveData();
     renderTabs();
     render();
@@ -1155,5 +837,4 @@ addListModal.addEventListener("click", (e) => {
 });
 
 /* -------------------------------   START   ------------------------------- */
-
-initAuth();
+loadData();
