@@ -16,7 +16,6 @@ const listTitle = document.getElementById("listTitle");
 const menuBtn = document.getElementById("menuBtn");
 const menuDropdown = document.getElementById("menuDropdown");
 const addListBtn = document.getElementById("addListBtn");
-const autocompleteList = document.getElementById("autocompleteList");
 const addListModal = document.getElementById("addListModal");
 const listNameInput = document.getElementById("listNameInput");
 const listTypeSelect = document.getElementById("listTypeSelect");
@@ -313,72 +312,18 @@ function getFoodSortOrder(internalCategory) {
     return order.indexOf(internalCategory);
 }
 
-/* -------------------------------   AUTOCOMPLETE   ------------------------------- */
-function showAutocomplete(value) {
-    const currentListData = lists[currentList];
-    const isShoppingList = currentListData && currentListData.type === 'shopping';
-    if (!isShoppingList || !value || value.length < 2) {
-        autocompleteList.classList.remove('show');
-        autocompleteList.innerHTML = '';
-        return;
-    }
-
-    const allShoppingItems = new Set();
-    for (const listName in lists) {
-        if (lists[listName].type === 'shopping') {
-            lists[listName].todos.forEach(todo => allShoppingItems.add(todo.text));
-        }
-    }
-
-    const suggestions = Array.from(allShoppingItems).filter(item => 
-        item.toLowerCase().includes(value.toLowerCase()) && item.toLowerCase() !== value.toLowerCase()
-    ).slice(0, 5);
-
-    if (suggestions.length === 0) {
-        autocompleteList.classList.remove('show');
-        autocompleteList.innerHTML = '';
-        return;
-    }
-
-    autocompleteList.innerHTML = '';
-    suggestions.forEach(suggestion => {
-        const div = document.createElement('div');
-        div.className = 'autocomplete-item';
-        const regex = new RegExp(`(${value})`, 'gi');
-        div.innerHTML = suggestion.replace(regex, '<span class="match">$1</span>');
-        div.addEventListener('click', () => {
-            input.value = suggestion;
-            autocompleteList.classList.remove('show');
-            autocompleteList.innerHTML = '';
-            input.focus();
-        });
-        autocompleteList.appendChild(div);
-    });
-    autocompleteList.classList.add('show');
-}
-
-input.addEventListener('input', (e) => showAutocomplete(e.target.value));
-input.addEventListener('blur', () => {
-    setTimeout(() => {
-        autocompleteList.classList.remove('show');
-        autocompleteList.innerHTML = '';
-    }, 200);
-});
-document.addEventListener('click', (e) => {
-    if (!input.contains(e.target) && !autocompleteList.contains(e.target)) {
-        autocompleteList.classList.remove('show');
-        autocompleteList.innerHTML = '';
-    }
-});
-
-/* -------------------------------   ZAHLEN HERVORHEBEN   ------------------------------- */
+/* -------------------------------   ZAHLEN HERVORHEBEN (FIX)   ------------------------------- */
 function highlightNumbers(text) {
-    const numberPattern = /^(\d+.?\d*\s*(g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?\s*)/i;
+    // Strikt: Zahl + optionale Einheit + optionales Leerzeichen. Greift NICHT in das nächste Wort.
+    const numberPattern = /^(\d+(?:\.?\d*)?\s*(?:g|kg|ml|l|st|stk|dag|cm|dm|mm|m|dl|cl|pack|packung|dose|flasche|glas)?)\s*/i;
     const match = text.match(numberPattern);
+    
     if (match) {
-        const number = match[1];
-        const rest = text.slice(number.length);
-        return `<span class="quantity">${number}</span>${rest}`;
+        // Trimme Leerzeichen innerhalb des Matches
+        const number = match[1].trim();
+        // Reststring ab Match-Ende, führende Leerzeichen entfernen
+        const rest = text.slice(match[0].length).trimStart();
+        return `<span class="quantity">${number}</span>${rest ? ' ' + rest : ''}`;
     }
     return text;
 }
@@ -506,8 +451,6 @@ function addTodo() {
     todos.push({ text, erledigt: false });
     input.value = "";
     input.blur();
-    autocompleteList.classList.remove('show');
-    autocompleteList.innerHTML = '';
     lists[currentList].todos = todos;
     saveData();
     render();
@@ -541,7 +484,6 @@ list.addEventListener("click", e => {
 filterBtns.forEach(btn => {
     btn.addEventListener("click", () => {
         const value = btn.dataset.filter;
-        // Toggle: Wenn schon aktiv, deaktivieren (= Alle anzeigen), sonst aktivieren
         filter = (filter === value) ? null : value;
         saveData();
         render();
