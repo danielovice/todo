@@ -96,20 +96,18 @@ MENÜ DROPDOWN
     text-align: left;
     padding: 12px 14px;
     font-size: 15px;
-    background: #0a84ff;
     color: white;
     border-radius: 10px;
-    box-shadow: 0 2px 0 #0055cc;
     transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
 }
 .list-item button:first-child:active {
     transform: translateY(1px);
     box-shadow: none;
 }
+/* FIX: Kein hardcoded blauer Schatten mehr. Farbe kommt aus Inline-Style/JS */
 .list-item button:first-child.dragging {
     opacity: 0.95;
     transform: scale(1.04);
-    box-shadow: 0 15px 40px rgba(10, 132, 255, 0.4);
     z-index: 10;
     border: 2px solid white;
 }
@@ -157,7 +155,6 @@ APP Container
     margin: 15px auto;
     touch-action: pan-y;
     position: relative;
-    flex: 1 0 auto;
 }
 h1, #listTitle {
     text-align: center;
@@ -227,7 +224,6 @@ FILTER BUTTONS
 .filter-btn {
     padding: 8px 14px;
     font-size: 14px;
-    background: #0a84ff;
     color: white;
     box-shadow: 0 3px 0 #0060df;
     border-radius: 10px;
@@ -547,6 +543,16 @@ MODAL
     display: flex;
     align-items: center;
     gap: 8px;
+}
+/* -------------------------------------------
+ERSTELLEN BUTTON (GRÖSSER)
+-------------------------------------------- */
+#confirmAddListBtn {
+    padding: 18px 24px;
+    font-size: 19px;
+    font-weight: 700;
+    width: 100%;
+    margin-top: 8px;
 }
 /* -------------------------------------------
 MOBILE
